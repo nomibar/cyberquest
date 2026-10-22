@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CyberQuests – Déjouez les pièges numériques en 10 minutes</title>
+  <meta name="description" content="Formation cybersécurité pour les PME : des mini-jeux de 10 minutes avec un feedback qui explique chaque erreur.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 24px; padding: 96px var(--page-x) 72px; }
+    .hero__badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: var(--indigo-light); color: var(--indigo); font-weight: 600; font-size: 14px; }
+    .hero h1 { font-size: 52px; line-height: 1.15; max-width: 900px; }
+    .hero p { font-size: 19px; color: var(--grey); max-width: 680px; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1512px; margin: 0 auto; padding: 0 var(--page-x) 72px; }
+    .feature { display: flex; flex-direction: column; gap: 12px; padding: 28px; }
+    .feature h2 { font-size: 20px; font-weight: 600; }
+    .feature p { color: var(--grey); }
+    .how { max-width: 1512px; margin: 0 auto; padding: 0 var(--page-x) 72px; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 24px; }
+    .step { display: flex; gap: 16px; align-items: flex-start; }
+    .step__num { width: 36px; height: 36px; border-radius: 50%; background: var(--indigo); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; }
+    .footer { border-top: 1px solid var(--border); }
+    .footer__inner { max-width: 1512px; margin: 0 auto; padding: 24px var(--page-x); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--grey); font-size: 14px; }
+    .footer__inner nav { display: flex; gap: 16px; flex-wrap: wrap; }
+    @media (max-width: 900px) {
+      .hero { padding-top: 56px; }
+      .hero h1 { font-size: 34px; }
+      .features, .steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header__inner">
+      <a class="logo" href="index.html"><img src="assets/img/logo.png" alt="CyberQuests – accueil"></a>
+      <a class="profile-btn" href="connexion.html">Se connecter</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="hero__badge"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>Formation cybersécurité pour les PME</span>
+      <h1>Apprenez à déjouer les pièges numériques en 10 minutes</h1>
+      <p>Des mini-jeux courts, un feedback qui explique chaque erreur, et un suivi anonymisé pour les équipes.</p>
+      <div class="row" style="flex-wrap:wrap;justify-content:center">
+        <a class="btn btn--primary" href="connexion.html">Se connecter</a>
+        <a class="btn btn--secondary" href="#comment">Comment ça marche ?</a>
+      </div>
+    </section>
+
+    <section class="features" aria-label="Avantages">
+      <article class="card feature">
+        <span class="icon-box"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+        <h2>Des jeux de 10 minutes</h2>
+        <p>À faire entre deux tâches, sans jargon technique. Votre progression est sauvegardée automatiquement.</p>
+      </article>
+      <article class="card feature">
+        <span class="icon-box"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></span>
+        <h2>Comprendre ses erreurs</h2>
+        <p>Après chaque piège, on vous montre l'indice raté et le bon réflexe, sans jugement.</p>
+      </article>
+      <article class="card feature">
+        <span class="icon-box"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        <h2>Un suivi d'équipe anonymisé</h2>
+        <p>Les managers voient les notions à renforcer, jamais de classement entre collègues.</p>
+      </article>
+    </section>
+
+    <section class="how" id="comment">
+      <div class="card">
+        <h2 class="card__title">Comment ça marche ?</h2>
+        <div class="steps">
+          <div class="step"><span class="step__num">1</span><div><strong>Vous jouez</strong><p class="muted">Un mail, un QR code, un message vocal : vous décidez quoi faire, comme au bureau.</p></div></div>
+          <div class="step"><span class="step__num">2</span><div><strong>Vous comprenez</strong><p class="muted">En cas d'erreur, les indices ratés sont surlignés et expliqués simplement.</p></div></div>
+          <div class="step"><span class="step__num">3</span><div><strong>Vous progressez</strong><p class="muted">Votre avancement est visible ; votre manager voit seulement les notions à renforcer.</p></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__inner">
+      <span>© CyberQuests · Prototype de démonstration, données fictives</span>
+      <nav aria-label="Liens légaux"><a href="#">Mentions légales</a><a href="#">Données personnelles</a><a href="#">Contact</a></nav>
+    </div>
+  </footer>
+</body>
+</html>

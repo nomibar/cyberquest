@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ma progression – CyberQuests</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .summary { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+    .summary__main { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 10px; }
+    .cheer { display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: var(--radius); background: var(--green-light); }
+    .revoir { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+  </style>
+</head>
+<body>
+  <header id="app-header"></header>
+  <main>
+    <div class="container">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Ma progression</h1>
+          <p class="page-subtitle">Formation obligatoire · à terminer avant le 15 décembre</p>
+        </div>
+        <a class="btn btn--primary" href="jeu.html" id="continue"></a>
+      </div>
+
+      <section class="card summary" id="summary"></section>
+
+      <div class="cols">
+        <section class="card">
+          <h2 class="card__title" style="margin-bottom:4px">Mes parcours</h2>
+          <div id="parcours"></div>
+        </section>
+        <div class="stack">
+          <section class="card stack" style="gap:12px">
+            <h2 class="card__title">À revoir quand vous voulez</h2>
+            <p class="small muted">Ces notions vous ont posé difficulté. Rejouer un mini-jeu de 5 min suffit souvent à les fixer.</p>
+            <div class="stack" style="gap:12px" id="revoir"></div>
+          </section>
+          <section class="card stack" style="gap:8px" id="history-card" hidden>
+            <h2 class="card__title">Mes dernières parties</h2>
+            <div id="history"></div>
+          </section>
+        </div>
+      </div>
+
+      <p class="note"><span data-icon="info"></span>Votre manager voit votre avancement, pas le détail de vos réponses.</p>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    const user = requireRole();
+    renderHeader("progression");
+    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 16));
+
+    const person = DATA.team.find(p => p.id === user.id) || { id: user.id, done: 2, notions: [] };
+    const { rows, assigned } = personParcours(person);
+    const total = DATA.parcours.length;
+    const history = Store.get("cq_game_history", []);
+    const lastGame = history[history.length - 1];
+
+    /* Bouton « Continuer » : d'abord un quiz assigné, sinon le prochain parcours */
+    const next = assigned[0] ? assigned[0].name.replace("Quiz : ", "") : (rows.find(r => r.status === "todo") || {}).name;
+    $("#continue").innerHTML = next ? `${icon("play", 18)} Continuer : ${esc(next)}` : `${icon("rotate", 18)} Rejouer un mini-jeu`;
+
+    const remaining = total - person.done;
+    $("#summary").innerHTML = `
+      <div class="summary__main">
+        <strong style="font-size:24px">${person.done} / ${total} parcours terminés</strong>
+        ${progressBar(person.done, total)}
+        <span class="small muted">${remaining ? `Encore ${remaining} parcours, soit environ ${remaining * 10} minutes.` : "Formation terminée, félicitations !"}</span>
+      </div>
+      <div class="cheer">
+        <span style="color:var(--green)">${icon("award", 24)}</span>
+        <div><strong style="color:var(--green)">Bravo, vous progressez bien !</strong>
+          <div class="small">${lastGame ? `Dernière partie : ${lastGame.firstTry}/${lastGame.total} pièges déjoués du premier coup` : "Badge « Œil de lynx » débloqué"}</div></div>
+      </div>`;
+
+    /* Liste des parcours, avec les quiz assignés par le manager */
+    const actionFor = r => r.status === "done" ? "" :
+      `<a class="link" href="jeu.html">${r.status === "rev" ? "Rejouer" : r.status === "wait" ? "Jouer" : "Commencer"}</a>`;
+    const list = [...rows];
+    const insertAt = list.findIndex(r => r.status === "todo");
+    list.splice(insertAt < 0 ? list.length : insertAt, 0, ...assigned.map(a => ({ ...a, meta: a.meta.replace("Assigné", "Assigné par votre manager") })));
+    $("#parcours").innerHTML = list.map(r => statusRow(r.name, r.meta, r.status, actionFor(r))).join("");
+
+    /* Notions à revoir */
+    const DESC = { pj: "Les fichiers .zip et .exe inattendus", qr: "Vérifier l'adresse avant de scanner", mdp: "Une phrase de passe différente par compte" };
+    $("#revoir").innerHTML = person.notions.length ? person.notions.map(id => `
+      <div class="revoir">
+        <div class="grow"><strong style="display:block">${quizById(id).name}</strong><span class="small muted">${DESC[id] || ""}</span></div>
+        <a class="link" href="jeu.html">${icon("rotate", 16)} Rejouer</a>
+      </div>`).join("") : '<p class="alert alert--success">Rien à revoir pour le moment, bravo !</p>';
+
+    if (history.length) {
+      $("#history-card").hidden = false;
+      $("#history").innerHTML = history.slice(-3).reverse().map(h =>
+        `<div class="list-row" style="padding:10px 0"><span class="grow">Mini-jeu Phishing · ${esc(h.date)}</span><span class="tag tag--indigo">${h.firstTry}/${h.total} du premier coup</span></div>`).join("");
+    }
+  </script>
+</body>
+</html>

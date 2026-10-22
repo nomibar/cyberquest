@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion – CyberQuests</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    main { display: flex; align-items: center; justify-content: center; padding: 48px 16px; }
+    .login { width: 100%; max-width: 460px; padding: 40px; display: flex; flex-direction: column; gap: 20px; border-radius: var(--radius-lg); }
+    .login img { height: 48px; width: auto; align-self: flex-start; }
+    .demo { display: grid; gap: 8px; }
+    .demo button { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; text-align: left; background: var(--bg); }
+    .demo button:hover { border-color: var(--indigo); background: var(--indigo-light); }
+    .divider { display: flex; align-items: center; gap: 12px; color: var(--grey); font-size: 13px; }
+    .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card login">
+      <a href="index.html"><img src="assets/img/logo.png" alt="CyberQuests – retour à l'accueil"></a>
+      <div>
+        <h1 style="font-size:28px">Connexion</h1>
+        <p class="muted">Utilisez vos identifiants d'entreprise.</p>
+      </div>
+
+      <div class="alert alert--error" id="login-error" role="alert" hidden></div>
+      <div class="alert alert--info" id="login-info" role="status" hidden></div>
+
+      <form id="login-form" class="stack" style="gap:16px" novalidate>
+        <div class="field">
+          <label class="field__label" for="email">Email professionnel</label>
+          <div class="input" id="email-box"><span aria-hidden="true" data-icon="mail"></span><input id="email" type="email" autocomplete="username" placeholder="prenom.nom@entreprise.fr" required></div>
+        </div>
+        <div class="field">
+          <label class="field__label" for="password">Mot de passe</label>
+          <div class="input" id="password-box"><span aria-hidden="true" data-icon="lock"></span><input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required></div>
+        </div>
+        <a href="#" class="link" id="forgot" style="align-self:flex-start">Mot de passe oublié ?</a>
+        <button class="btn btn--primary btn--block" type="submit">Se connecter</button>
+      </form>
+
+      <div class="divider">ou, pour la démonstration</div>
+      <div class="demo" id="demo-accounts"></div>
+
+      <p class="small muted" style="text-align:center">Vos données servent uniquement à suivre votre formation.</p>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 18));
+
+    const errorBox = $("#login-error");
+    const infoBox = $("#login-info");
+
+    if (param("refus")) {
+      infoBox.hidden = false;
+      infoBox.innerHTML = icon("info", 18) + "<span>Cette page n'est pas accessible avec ce compte. Connectez-vous avec un autre rôle.</span>";
+    }
+
+    const showError = msg => {
+      errorBox.hidden = false;
+      errorBox.innerHTML = icon("alert", 18) + `<span>${msg}</span>`;
+      $("#password-box").classList.add("input--error");
+    };
+
+    const go = role => { Session.login(role); location.href = homeFor(role); };
+
+    $("#login-form").addEventListener("submit", e => {
+      e.preventDefault();
+      infoBox.hidden = true;
+      $("#password-box").classList.remove("input--error");
+      const email = $("#email").value.trim().toLowerCase();
+      const pwd = $("#password").value;
+      if (!email || !pwd) { showError("Renseignez votre email et votre mot de passe."); return; }
+      const user = Object.values(DATA.users).find(u => u.email === email);
+      if (!user || pwd !== DATA.demoPassword) {
+        showError("Email ou mot de passe incorrect. Vérifiez vos identifiants ou réinitialisez votre mot de passe.");
+        return;
+      }
+      go(user.role);
+    });
+
+    $("#forgot").addEventListener("click", e => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      infoBox.hidden = false;
+      infoBox.innerHTML = icon("mail", 18) + "<span>Dans la version réelle, un lien de réinitialisation serait envoyé par mail. Pour la démo, le mot de passe est <strong>demo</strong>.</span>";
+    });
+
+    $("#demo-accounts").innerHTML = Object.values(DATA.users).map(u => `
+      <button type="button" data-role="${u.role}">
+        <span class="avatar">${u.initials}</span>
+        <span class="grow"><strong>${DATA.roleLabels[u.role]}</strong><span class="small muted" style="display:block">${u.name} · ${u.email}</span></span>
+        ${icon("arrowRight", 18)}
+      </button>`).join("");
+    $$("#demo-accounts button").forEach(b => b.addEventListener("click", () => go(b.dataset.role)));
+  </script>
+</body>
+</html>

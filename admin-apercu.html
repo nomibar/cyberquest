@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aperçu avant publication – CyberQuests</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .preview-bar { background: var(--indigo-light); }
+    .preview-bar__inner { max-width: 1512px; margin: 0 auto; padding: 16px var(--page-x); display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .frame { width: 100%; max-width: 900px; margin: 0 auto; padding: 32px; border: 2px dashed var(--indigo); border-radius: var(--radius-lg); background: #fff; display: flex; flex-direction: column; gap: 24px; }
+    .player { display: flex; align-items: center; gap: 16px; padding: 16px 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+    .play { width: 44px; height: 44px; border-radius: 50%; background: var(--indigo); color: #fff; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .wave { display: flex; align-items: center; gap: 3px; height: 32px; margin-top: 8px; }
+    .wave span { width: 4px; border-radius: 2px; background: var(--border); }
+    .wave span.on { background: var(--indigo); }
+    .situation { padding: 16px; border-radius: 10px; background: var(--bg); }
+    .answers { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .answers .option { flex-direction: column; align-items: flex-start; }
+  </style>
+</head>
+<body>
+  <header id="app-header"></header>
+  <div class="preview-bar">
+    <div class="preview-bar__inner" id="bar"></div>
+  </div>
+  <main>
+    <div class="container" id="content"></div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    requireRole(["admin"]);
+    renderHeader("admin");
+
+    const q = Questions.get(param("id"));
+
+    if (!q) {
+      $("#content").innerHTML = `<div class="card empty">Question introuvable. <a class="link" href="admin.html">Retour à l'administration</a></div>`;
+    } else {
+      const p = parcoursById(q.parcours);
+      const complete = q.situation && q.reponses && q.reponses.length >= 2;
+      const isDraft = q.statut !== "publie";
+
+      $("#bar").innerHTML = `
+        <span style="color:var(--indigo)">${icon("eye", 22)}</span>
+        <div class="grow">
+          <strong style="color:var(--indigo)">Aperçu : voici ce que verront les employés</strong>
+          <div class="small">${isDraft ? "Rien n'est publié tant que vous n'avez pas cliqué sur « Publier »." : "Cette question est déjà publiée."}</div>
+        </div>
+        <a class="btn btn--secondary" href="admin-question.html?id=${q.id}">${icon("edit", 18)} Modifier</a>
+        ${isDraft
+          ? `<button class="btn btn--primary" id="publish" ${complete ? "" : "disabled"}>${icon("send", 18)} Publier dans « ${esc(p.name)} »</button>`
+          : `<a class="btn btn--primary" href="admin.html?parcours=${q.parcours}">Retour au parcours</a>`}`;
+
+      if (!complete) {
+        $("#content").innerHTML = `
+          <div class="frame" style="align-items:center;text-align:center">
+            <span class="icon-box icon-box--orange" style="border-radius:50%">${icon("warning", 24)}</span>
+            <h1 style="font-size:24px">Aperçu indisponible</h1>
+            <p class="muted">Cette question n'a pas encore de mise en situation ni de réponses. Complétez-la pour voir l'aperçu.</p>
+            <a class="btn btn--primary" href="admin-question.html?id=${q.id}">${icon("edit", 18)} Compléter la question</a>
+          </div>`;
+      } else {
+        const audio = q.format === "Message vocal";
+        const heights = [8,14,22,12,18,26,10,16,24,30,14,20,8,18,26,12,22,16,10,20,28,14,18,8,24,12,16,22,10,18,26,14,20,12,8,16,22,18,10,14];
+        const media = audio ? `
+          <div class="player">
+            <button class="play" id="play" aria-label="Lire le message">${icon("play", 18)}</button>
+            <div class="grow">
+              <strong>Message vocal${q.fichier ? " · " + esc(q.fichier) : ""} · 0:18</strong>
+              <div class="wave" id="wave">${heights.map(h => `<span style="height:${h}px"></span>`).join("")}</div>
+            </div>
+          </div>
+          <div class="situation"><div class="label-caps" style="margin-bottom:6px">Transcription</div><p>${esc(q.situation)}</p></div>`
+          : `<div class="situation"><div class="row" style="gap:8px;margin-bottom:6px;color:var(--grey)">${icon(FORMAT_ICONS[q.format] || "file", 16)}<span class="label-caps">${esc(q.format)}</span></div><p>${esc(q.situation)}</p>${q.fichier ? `<p class="small muted" style="margin-top:8px">${icon("paperclip", 14)} ${esc(q.fichier)}</p>` : ""}</div>`;
+
+        $("#content").innerHTML = `
+          <div class="frame">
+            <div style="text-align:center">
+              <h1 style="font-size:26px">${audio ? "Vous recevez ce message vocal. Que faites-vous ?" : "Que faites-vous dans cette situation ?"}</h1>
+              <p class="muted">Mini-jeu · ${esc(p.name)} · ${esc(q.titre)}</p>
+            </div>
+            ${media}
+            <div class="answers" id="answers">
+              ${q.reponses.map((r, i) => `<button class="option" data-i="${i}"><strong>${esc(r)}</strong></button>`).join("")}
+            </div>
+            <div id="feedback"></div>
+          </div>
+          <p class="note" style="justify-content:center">${icon("info", 16)} Vous pouvez cliquer sur une réponse pour tester le retour affiché au joueur.</p>`;
+
+        $$("#answers .option").forEach(b => b.addEventListener("click", () => {
+          const i = +b.dataset.i, ok = i === q.correct;
+          $$("#answers .option").forEach((o, j) => o.className = "option" + (j === q.correct ? " is-correct" : j === i ? " is-wrong" : ""));
+          $("#feedback").innerHTML = `
+            <div class="alert ${ok ? "alert--success" : "alert--warning"}">
+              <span style="color:${ok ? "var(--green)" : "var(--orange)"}">${icon(ok ? "check" : "heart", 20)}</span>
+              <div><strong>${ok ? "Bien vu !" : "Oups, c'était un piège… pas d'inquiétude !"}</strong><p>${esc(q.explication)}</p></div>
+            </div>`;
+        }));
+
+        const play = $("#play");
+        if (play) play.addEventListener("click", () => {
+          const bars = $$("#wave span");
+          let k = 0;
+          play.disabled = true;
+          const t = setInterval(() => {
+            if (k < bars.length) bars[k++].classList.add("on");
+            else { clearInterval(t); play.disabled = false; bars.forEach(b => b.classList.remove("on")); }
+          }, 60);
+        });
+      }
+
+      const pub = $("#publish");
+      if (pub) pub.addEventListener("click", () => {
+        Questions.upsert({ ...q, statut: "publie" });
+        flash(`Question publiée : elle apparaît maintenant dans le parcours « ${esc(p.name)} ».`);
+        location.href = `admin.html?parcours=${q.parcours}&nouveau=${q.id}`;
+      });
+    }
+  </script>
+</body>
+</html>

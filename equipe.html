@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mon équipe – CyberQuests</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .notions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px; }
+    .notion { display: flex; flex-direction: column; gap: 12px; padding: 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+    .notion__rate { font-size: 32px; font-weight: 700; line-height: 1; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 24px 24px 20px; }
+    .toolbar .input { width: 280px; min-height: 40px; }
+    .toolbar select.input { padding: 0 12px; color: var(--ink); font-weight: 500; font-size: 14px; cursor: pointer; }
+    .person { display: flex; align-items: center; gap: 12px; }
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .col-progress { width: 280px; }
+    @media (max-width: 900px) { .notions { grid-template-columns: 1fr; } .toolbar .input { width: 100%; } }
+  </style>
+</head>
+<body>
+  <header id="app-header"></header>
+  <main>
+    <div class="container">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Mon équipe</h1>
+          <p class="page-subtitle">Service commercial · <span id="team-count"></span> collaborateurs · Formation à terminer avant le 15 décembre</p>
+        </div>
+        <button class="btn btn--primary" id="assign-team"><span data-icon="plus"></span> Assigner un quiz à l'équipe</button>
+      </div>
+
+      <section class="card">
+        <h2 class="card__title">Notions les plus ratées par l'équipe</h2>
+        <p class="card__subtitle">Résultats anonymisés, classés du plus difficile au moins difficile</p>
+        <div class="notions" id="notions"></div>
+      </section>
+
+      <section class="card card--flush">
+        <div class="toolbar">
+          <div>
+            <h2 class="card__title">Collaborateurs (<span id="list-count"></span>)</h2>
+            <p class="card__subtitle">Cliquez sur une personne pour voir son détail et lui assigner un quiz</p>
+          </div>
+          <div class="row" style="flex-wrap:wrap">
+            <label class="input"><span data-icon="search"></span><input type="search" id="search" placeholder="Rechercher un collaborateur" aria-label="Rechercher un collaborateur"></label>
+            <select class="input" id="filter" aria-label="Filtrer par statut">
+              <option value="all">Statut : Tous</option>
+              <option value="done">Formation terminée</option>
+              <option value="progress">En cours</option>
+              <option value="none">Pas encore commencé</option>
+              <option value="revoir">Notions à revoir</option>
+              <option value="assigned">Quiz assigné en attente</option>
+            </select>
+          </div>
+        </div>
+        <div id="active-filter"></div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Collaborateur</th><th>Avancement de la formation</th><th>Notions à revoir</th><th>Dernière activité</th><th><span class="sr-only">Action</span></th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="note"><span data-icon="info"></span>Liste triée par ordre alphabétique. Aucun score brut ni classement n'est affiché.</p>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    requireRole(["manager", "admin"]);
+    renderHeader("equipe");
+    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 16));
+    showFlash();
+
+    const total = DATA.parcours.length;
+    let notionFilter = null;
+    $("#team-count").textContent = DATA.team.length;
+
+    /* ---- Cartes « notions les plus ratées » ---- */
+    const level = r => r >= 50 ? ["Priorité", "red"] : r >= 30 ? ["À surveiller", "orange"] : ["Bien maîtrisé", "green"];
+    $("#notions").innerHTML = DATA.teamNotions.map(n => {
+      const [label, color] = level(n.rate);
+      return `
+        <div class="notion">
+          <div class="row row--between"><strong>${n.label}</strong><span class="tag tag--${color}">${label}</span></div>
+          <div class="row" style="align-items:flex-end;gap:8px"><span class="notion__rate" style="color:var(--${color})">${n.rate} %</span><span class="small muted">de l'équipe se trompe</span></div>
+          ${progressBar(n.rate, 100, "progress--" + color)}
+          ${n.rate >= 30
+            ? `<button class="link" data-remind="${n.id}" style="align-self:flex-start">Planifier un rappel collectif ${icon("chevronRight", 16)}</button>`
+            : `<button class="link" data-notion="${n.id}" style="align-self:flex-start">Voir les personnes concernées ${icon("chevronRight", 16)}</button>`}
+        </div>`;
+    }).join("");
+
+    /* ---- Liste des collaborateurs ---- */
+    function statusOf(p) { return p.done === total ? "done" : p.done === 0 ? "none" : "progress"; }
+
+    function render() {
+      const q = $("#search").value.trim().toLowerCase();
+      const f = $("#filter").value;
+      const people = [...DATA.team]
+        .sort((a, b) => a.name.localeCompare(b.name, "fr"))
+        .filter(p => p.name.toLowerCase().includes(q) || p.job.toLowerCase().includes(q))
+        .filter(p => {
+          const pending = Assignments.forPerson(p.id).length > 0;
+          if (f === "revoir") return p.notions.length > 0;
+          if (f === "assigned") return pending;
+          return f === "all" || statusOf(p) === f;
+        })
+        .filter(p => !notionFilter || p.notions.includes(notionFilter));
+
+      $("#list-count").textContent = people.length;
+      $("#active-filter").innerHTML = notionFilter
+        ? `<div class="row" style="padding:0 24px 16px"><span class="tag tag--indigo">Notion : ${quizById(notionFilter).name}</span><button class="link" id="clear-notion">Retirer le filtre</button></div>` : "";
+      if (notionFilter) $("#clear-notion").addEventListener("click", () => { notionFilter = null; render(); });
+
+      $("#rows").innerHTML = people.length ? people.map(p => {
+        const pending = Assignments.forPerson(p.id);
+        const tags = [
+          ...p.notions.map(id => `<span class="tag tag--red">${quizById(id).notion}</span>`),
+          ...pending.map(a => `<span class="tag tag--orange">Quiz assigné · ${quizById(a.quizId).notion}</span>`)
+        ];
+        if (!tags.length) tags.push(p.done === total ? '<span class="tag tag--green">Tout est maîtrisé</span>' : p.done === 0 ? '<span class="tag tag--grey">Pas encore commencé</span>' : '<span class="tag tag--grey">Rien à signaler</span>');
+        return `
+          <tr class="is-clickable" data-id="${p.id}" tabindex="0">
+            <td><div class="person"><span class="avatar">${p.initials}</span><div><div style="font-weight:600">${p.name}</div><div class="small muted">${p.job}</div></div></div></td>
+            <td class="col-progress"><div class="small" style="font-weight:500;margin-bottom:8px">${p.done} / ${total} parcours terminés</div>${progressBar(p.done, total)}</td>
+            <td><div class="tags">${tags.join("")}</div></td>
+            <td class="muted">${p.last}</td>
+            <td style="text-align:right"><a class="link" href="collaborateur.html?id=${p.id}">Voir le détail ${icon("chevronRight", 16)}</a></td>
+          </tr>`;
+      }).join("") : `<tr><td colspan="5" class="empty">Aucun collaborateur ne correspond à ces critères.</td></tr>`;
+
+      $$("#rows tr[data-id]").forEach(tr => {
+        const go = () => location.href = "collaborateur.html?id=" + tr.dataset.id;
+        tr.addEventListener("click", e => { if (!e.target.closest("a")) go(); });
+        tr.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
+      });
+    }
+
+    $("#search").addEventListener("input", render);
+    $("#filter").addEventListener("change", render);
+    $$("[data-notion]").forEach(b => b.addEventListener("click", () => {
+      notionFilter = b.dataset.notion; render();
+      $("#rows").scrollIntoView({ behavior: "smooth", block: "center" });
+    }));
+
+    /* ---- Assignation à toute l'équipe ---- */
+    const modal = setupAssignModal({
+      onAssign({ quizId, due, notify }) {
+        const group = uid("g");
+        DATA.team.forEach(p => Assignments.add({ id: uid("a"), group, personId: p.id, quizId, due, notify, date: todayLabel() }));
+        render();
+        toast(`Quiz « ${quizById(quizId).name} » assigné aux ${DATA.team.length} collaborateurs.` + (notify ? " Ils ont été prévenus." : ""), {
+          label: "Annuler",
+          onClick() { Assignments.save(Assignments.all().filter(a => a.group !== group)); render(); toast("Assignation annulée."); }
+        });
+      }
+    });
+    const openTeam = preselect => modal.open({
+      forLabel: `Pour toute l'équipe (${DATA.team.length} collaborateurs)`,
+      notifyLabel: "Prévenir l'équipe par une notification",
+      suggested: [DATA.teamNotions[0].id],
+      preselect
+    });
+    $("#assign-team").addEventListener("click", () => openTeam());
+    $$("[data-remind]").forEach(b => b.addEventListener("click", () => openTeam(b.dataset.remind)));
+
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nouvelle question – CyberQuests</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .form { display: flex; flex-direction: column; gap: 20px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .dropzone { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px dashed var(--border); border-radius: var(--radius-sm); background: var(--bg); cursor: pointer; }
+    .dropzone:hover { border-color: var(--indigo); }
+    .answer { display: flex; align-items: center; gap: 12px; padding: 4px 8px 4px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
+    .answer.is-correct { border-color: var(--green); background: var(--green-light); }
+    .answer input[type="text"] { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 0; outline: 0; font-size: 15px; }
+    .answer input[type="radio"] { width: 20px; height: 20px; accent-color: var(--green); margin: 0; }
+    .form-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    @media (max-width: 700px) { .two { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header id="app-header"></header>
+  <main>
+    <div class="container container--narrow">
+      <nav class="breadcrumb" aria-label="Fil d'Ariane"><a id="back-link" href="admin.html"><span data-icon="chevronLeft"></span> <span id="back-label"></span></a><span>/</span><span id="crumb"></span></nav>
+      <div class="page-header">
+        <h1 class="page-title" id="page-title">Nouvelle question</h1>
+        <button class="btn btn--secondary btn--sm" id="fill-demo" type="button"><span data-icon="bulb"></span> Remplir avec l'exemple (démo)</button>
+      </div>
+
+      <form class="card form" id="form" novalidate>
+        <div class="alert alert--error" id="form-error" role="alert" hidden></div>
+
+        <div class="two">
+          <div class="field">
+            <label class="field__label" for="format">Format</label>
+            <div class="input"><select id="format"></select><span data-icon="chevronDown"></span></div>
+          </div>
+          <div class="field">
+            <label class="field__label" for="notion">Notion associée</label>
+            <div class="input"><select id="notion"></select><span data-icon="chevronDown"></span></div>
+          </div>
+        </div>
+
+        <div class="field" id="f-titre">
+          <label class="field__label" for="titre">Titre</label>
+          <div class="input"><input id="titre" type="text" placeholder="Ex. Message vocal de votre directeur" maxlength="90"></div>
+          <span class="field__error">Donnez un titre à la question.</span>
+        </div>
+
+        <div class="field" id="f-situation">
+          <label class="field__label" for="situation">Mise en situation <span class="field__hint">(ce que vit le joueur)</span></label>
+          <div class="input"><textarea id="situation" rows="3" placeholder="Ex. Vous recevez un message vocal de votre directeur qui vous demande un virement urgent…"></textarea></div>
+          <span class="field__error">Décrivez la situation.</span>
+        </div>
+
+        <div class="field">
+          <span class="field__label">Fichier <span class="field__hint">(audio, image ou vidéo, facultatif)</span></span>
+          <label class="dropzone" for="file">
+            <span data-icon="upload" style="color:var(--indigo)"></span>
+            <span class="grow"><strong id="file-name" style="display:block">Choisir un fichier</strong><span class="small muted" id="file-info">MP3, PNG, JPG ou MP4 · 10 Mo max</span></span>
+            <span class="link">Parcourir</span>
+          </label>
+          <input class="sr-only" type="file" id="file" accept="audio/*,image/*,video/*">
+        </div>
+
+        <div class="field" id="f-reponses">
+          <span class="field__label">Réponses possibles <span class="field__hint">(cochez la bonne réponse)</span></span>
+          <div class="stack" style="gap:8px" id="answers" role="radiogroup" aria-label="Réponses possibles"></div>
+          <button type="button" class="link" id="add-answer" style="align-self:flex-start"><span data-icon="plus"></span> Ajouter une réponse</button>
+          <span class="field__error">Il faut au moins 2 réponses remplies et une bonne réponse cochée.</span>
+        </div>
+
+        <div class="field" id="f-explication">
+          <label class="field__label" for="explication">Explication de l'erreur <span class="field__hint">(affichée au joueur après une erreur)</span></label>
+          <div class="input"><textarea id="explication" rows="3" placeholder="Expliquez simplement pourquoi c'était un piège et quel est le bon réflexe."></textarea></div>
+          <span class="field__error">L'explication est essentielle : c'est elle qui fait apprendre.</span>
+        </div>
+      </form>
+
+      <div class="form-actions">
+        <a class="btn btn--secondary" id="cancel" href="admin.html">Annuler</a>
+        <span class="grow"></span>
+        <button class="btn btn--secondary" id="save-draft">Enregistrer le brouillon</button>
+        <button class="btn btn--primary" id="preview"><span data-icon="eye"></span> Voir l'aperçu</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    requireRole(["admin"]);
+    renderHeader("admin");
+    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 18));
+
+    const editing = param("id") ? Questions.get(param("id")) : null;
+    const parcoursId = editing ? editing.parcours : (parcoursById(param("parcours")) ? param("parcours") : "ia");
+    const p = parcoursById(parcoursId);
+    let answers = editing && editing.reponses ? [...editing.reponses] : ["", "", ""];
+    let correct = editing && editing.reponses ? editing.correct : 0;
+
+    $("#back-link").href = $("#cancel").href = "admin.html?parcours=" + parcoursId;
+    $("#back-label").textContent = p.name;
+    $("#crumb").textContent = editing ? "Modifier une question" : "Nouvelle question";
+    $("#page-title").textContent = editing ? "Modifier la question" : "Nouvelle question";
+    document.title = $("#page-title").textContent + " – CyberQuests";
+    if (editing) $("#fill-demo").hidden = true;
+
+    $("#format").innerHTML = DATA.formats.map(f => `<option>${f}</option>`).join("");
+    $("#notion").innerHTML = DATA.notionsList.map(n => `<option>${n}</option>`).join("");
+
+    function fill(q) {
+      $("#format").value = q.format || "Mail";
+      $("#notion").value = q.notion || DATA.notionsList[0];
+      $("#titre").value = q.titre || "";
+      $("#situation").value = q.situation || "";
+      $("#explication").value = q.explication || "";
+      if (q.fichier) { $("#file-name").textContent = q.fichier; $("#file-info").textContent = "Fichier joint · cliquez pour remplacer"; }
+    }
+    if (editing) fill(editing);
+    else if (parcoursId === "ia") { $("#format").value = "Message vocal"; $("#notion").value = "Deepfakes vocaux"; }
+
+    function renderAnswers() {
+      $("#answers").innerHTML = answers.map((a, i) => `
+        <div class="answer ${i === correct ? "is-correct" : ""}">
+          <input type="radio" name="correct" value="${i}" ${i === correct ? "checked" : ""} aria-label="Bonne réponse : réponse ${i + 1}">
+          <input type="text" value="${esc(a)}" data-i="${i}" placeholder="Réponse ${i + 1}" aria-label="Réponse ${i + 1}">
+          ${i === correct ? '<span class="tag tag--green" style="background:#fff">Bonne réponse</span>' : ""}
+          ${answers.length > 2 ? `<button type="button" class="square-btn" style="border:0;background:transparent" data-remove="${i}" aria-label="Supprimer la réponse ${i + 1}">${icon("x", 16)}</button>` : ""}
+        </div>`).join("");
+      $$('#answers input[type="text"]').forEach(inp => inp.addEventListener("input", () => { answers[+inp.dataset.i] = inp.value; }));
+      $$('#answers input[type="radio"]').forEach(r => r.addEventListener("change", () => { correct = +r.value; renderAnswers(); }));
+      $$("[data-remove]").forEach(b => b.addEventListener("click", () => {
+        const i = +b.dataset.remove;
+        answers.splice(i, 1);
+        if (correct === i) correct = 0; else if (correct > i) correct--;
+        renderAnswers();
+      }));
+      $("#add-answer").hidden = answers.length >= 5;
+    }
+    renderAnswers();
+    $("#add-answer").addEventListener("click", () => { answers.push(""); renderAnswers(); $$('#answers input[type="text"]').pop().focus(); });
+
+    $("#file").addEventListener("change", e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      $("#file-name").textContent = f.name;
+      $("#file-info").textContent = `${Math.max(1, Math.round(f.size / 1024))} Ko · cliquez pour remplacer`;
+    });
+
+    $("#fill-demo").addEventListener("click", () => {
+      fill({
+        format: "Message vocal", notion: "Deepfakes vocaux",
+        titre: "Message vocal de votre directeur",
+        situation: "« Bonjour, c'est Marc. Je suis en rendez-vous, j'ai besoin que tu fasses un virement de 8 400 € au nouveau fournisseur avant midi. Je t'envoie le RIB par mail. Merci, c'est urgent. »",
+        explication: "Une voix peut être imitée par l'IA à partir de quelques secondes d'enregistrement. Pour toute demande d'argent inhabituelle, rappelez la personne sur un numéro que vous connaissez déjà.",
+        fichier: "deepfake-directeur.mp3"
+      });
+      answers = ["Faire le virement tout de suite", "Rappeler le directeur sur son numéro habituel", "Répondre au message vocal pour confirmer"];
+      correct = 1;
+      renderAnswers();
+    });
+
+    /* ---- Validation et enregistrement ---- */
+    function collect() {
+      return {
+        id: editing ? editing.id : uid("q"),
+        parcours: parcoursId,
+        format: $("#format").value,
+        notion: $("#notion").value,
+        titre: $("#titre").value.trim(),
+        situation: $("#situation").value.trim(),
+        fichier: $("#file-name").textContent === "Choisir un fichier" ? "" : $("#file-name").textContent,
+        reponses: answers.map(a => a.trim()),
+        correct,
+        explication: $("#explication").value.trim(),
+        statut: editing ? editing.statut : "brouillon"
+      };
+    }
+
+    function validate(q, full) {
+      const checks = {
+        "f-titre": !!q.titre,
+        "f-situation": !full || !!q.situation,
+        "f-reponses": !full || (q.reponses.filter(Boolean).length >= 2 && !!q.reponses[q.correct]),
+        "f-explication": !full || !!q.explication
+      };
+      Object.entries(checks).forEach(([id, ok]) => $("#" + id).classList.toggle("has-error", !ok));
+      const ok = Object.values(checks).every(Boolean);
+      $("#form-error").hidden = ok;
+      if (!ok) {
+        $("#form-error").innerHTML = icon("alert", 18) + "<span>Certains champs sont à compléter avant de continuer.</span>";
+        $("#form-error").scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return ok;
+    }
+
+    function clean(q) {
+      const kept = q.reponses.map((r, i) => ({ r, i })).filter(x => x.r);
+      return { ...q, reponses: kept.map(x => x.r), correct: Math.max(0, kept.findIndex(x => x.i === q.correct)) };
+    }
+
+    $("#save-draft").addEventListener("click", () => {
+      const q = collect();
+      if (!validate(q, false)) return;
+      Questions.upsert(clean({ ...q, statut: "brouillon" }));
+      flash(`Brouillon « ${esc(q.titre)} » enregistré. Il n'est pas visible par les employés.`);
+      location.href = "admin.html?parcours=" + parcoursId;
+    });
+
+    $("#preview").addEventListener("click", () => {
+      const q = collect();
+      if (!validate(q, true)) return;
+      Questions.upsert(clean(q));
+      location.href = "admin-apercu.html?id=" + q.id;
+    });
+  </script>
+</body>
+</html>

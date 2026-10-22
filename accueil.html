@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mes parcours – CyberQuests</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    .theme__head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    .quiz-list { display: flex; flex-direction: column; gap: 12px; }
+    .quiz-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); }
+    .quiz-item:hover { border-color: #C7D2FE; background: #fff; }
+    .quiz-item__title { font-weight: 600; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <header id="app-header"></header>
+  <main>
+    <div class="container">
+      <div>
+        <h1 class="page-title">Explorer les thèmes</h1>
+        <p class="page-subtitle">Choisissez un thème pour accéder à ses quiz et défis.</p>
+      </div>
+      <div class="stack" id="themes"></div>
+      <p class="note"><span data-icon="info"></span>Prototype : chaque bouton « Jouer » lance le mini-jeu de démonstration sur le phishing.</p>
+    </div>
+  </main>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>
+    requireRole();
+    renderHeader("parcours");
+    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 16));
+
+    const SHOW = { cyber: 3, info: 2, ia: 2 };
+    const expanded = new Set();
+
+    function render() {
+      $("#themes").innerHTML = DATA.themes.map(t => {
+        const open = expanded.has(t.id);
+        const list = open ? t.quizzes : t.quizzes.slice(0, SHOW[t.id]);
+        return `
+          <section class="card" aria-labelledby="t-${t.id}">
+            <div class="theme__head">
+              <div class="row" style="gap:16px">
+                <span class="icon-box icon-box--round">${icon(t.icon, 24)}</span>
+                <div><h2 id="t-${t.id}" style="font-size:20px;font-weight:600">${t.name}</h2><p class="small muted">${t.quizzes.length} quiz disponibles</p></div>
+              </div>
+              <button class="link" data-toggle="${t.id}" aria-expanded="${open}">${open ? "Réduire" : "Voir tout"} ${icon(open ? "chevronDown" : "chevronRight", 16)}</button>
+            </div>
+            <div class="quiz-list">
+              ${list.map(q => `
+                <a class="quiz-item" href="jeu.html">
+                  <span class="row" style="gap:16px">
+                    <span class="icon-box icon-box--sm">${icon("play", 20)}</span>
+                    <span><span class="quiz-item__title" style="display:block">Quiz : ${esc(q.title)}</span><span class="small muted">${q.questions} questions • Niveau : ${q.level}</span></span>
+                  </span>
+                  <span class="link">Jouer ${icon("chevronRight", 16)}</span>
+                </a>`).join("")}
+            </div>
+          </section>`;
+      }).join("");
+      $$("[data-toggle]").forEach(b => b.addEventListener("click", () => {
+        const id = b.dataset.toggle;
+        expanded.has(id) ? expanded.delete(id) : expanded.add(id);
+        render();
+      }));
+    }
+    render();
+  </script>
+</body>
+</html>
