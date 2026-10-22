@@ -242,9 +242,9 @@
           return `
             <div class="stage stage--center" style="padding:16px 0 0">
               <div class="card qcard" style="text-align:center;align-items:center">
-                <span class="icon-box ${perfect ? "icon-box--green" : ""}" style="width:64px;height:64px;border-radius:50%">${icon("award", 32)}</span>
+                <span class="icon-box ${perfect ? "icon-box--green" : ""}" style="width:64px;height:64px;border-radius:50%">${icon("shield", 32)}</span>
                 <h1 style="font-size:28px">${perfect ? "Parcours réussi sans faute !" : "Mini-jeu terminé, bravo !"}</h1>
-                <p class="muted" style="max-width:520px">Vous avez déjoué <strong style="color:var(--ink)">${firstTry} piège${firstTry > 1 ? "s" : ""} sur ${N}</strong> du premier coup. ${perfect ? "Badge « Œil de lynx » débloqué." : "Les autres sont maintenant compris : c'est ce qui compte."}</p>
+                <p class="muted" style="max-width:520px">Vous avez déjoué <strong style="color:var(--ink)">${firstTry} piège${firstTry > 1 ? "s" : ""} sur ${N}</strong> du premier coup. ${perfect ? "Aucun piège ne vous a échappé." : "Les autres sont maintenant compris : c'est ce qui compte."}</p>
                 <div class="result-list" style="width:100%;text-align:left">
                   ${G.situations.map((s, i) => {
                     const r = state.results[i] || {};
