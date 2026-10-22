@@ -10,10 +10,10 @@ const DATA = {};
 DATA.demoAccounts = [
   { role: "joueur", name: "Camille Bernard", initials: "CB", email: "camille.bernard@entreprise.fr" },
   { role: "manager", name: "Marc Durand", initials: "MD", email: "marc.durand@entreprise.fr" },
-  { role: "admin", name: "Sophie Leroy", initials: "SL", email: "sophie.leroy@entreprise.fr" }
+  { role: "admin", name: "Sophie Leroy", initials: "SL", email: "sophie.leroy@cyberquest.fr" }
 ];
 DATA.demoPassword = "demo";
-DATA.roleLabels = { joueur: "Employé", manager: "Manager", admin: "Administratrice RH" };
+DATA.roleLabels = { joueur: "Employé", manager: "Manager", admin: "Super admin" };
 
 /* ---------- Administration : listes des formulaires ---------- */
 DATA.formats = ["Mail", "Message vocal", "QR code", "Conversation", "Image", "Vidéo"];

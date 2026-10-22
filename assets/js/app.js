@@ -182,7 +182,7 @@ function notificationsFor(user) {
 const NAV = {
   joueur: [["parcours", "Mes parcours", "accueil.html"], ["progression", "Ma progression", "progression.html"]],
   manager: [["parcours", "Mes parcours", "accueil.html"], ["progression", "Ma progression", "progression.html"], ["equipe", "Mon équipe", "equipe.html"]],
-  admin: [["parcours", "Mes parcours", "accueil.html"], ["equipe", "Mon équipe", "equipe.html"], ["admin", "Administration", "admin.html"]]
+  admin: [["parcours", "Mes parcours", "accueil.html"], ["equipe", "Utilisateurs", "equipe.html"], ["admin", "Administration", "admin.html"]]
 };
 
 function renderHeader(active) {

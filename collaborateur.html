@@ -30,7 +30,7 @@
       const total = DATA.parcours.length;
 
       if (!person) {
-        $("#content").innerHTML = `<div class="card empty">Ce collaborateur est introuvable. <a class="link" href="equipe.html">Retour à mon équipe</a></div>`;
+        $("#content").innerHTML = `<div class="card empty">Ce collaborateur est introuvable. <a class="link" href="equipe.html">Retour ${user.role === "admin" ? "aux utilisateurs" : "à mon équipe"}</a></div>`;
       } else {
         document.title = person.name + " – CyberQuests";
         const firstName = esc(person.name.split(" ")[0]);
@@ -64,7 +64,7 @@
           list.splice(insertAt < 0 ? list.length : insertAt, 0, ...assigned);
 
           $("#content").innerHTML = `
-            <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="equipe.html">${icon("chevronLeft", 16)} Mon équipe</a><span>/</span><span>${esc(person.name)}</span></nav>
+            <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="equipe.html">${icon("chevronLeft", 16)} ${user.role === "admin" ? "Utilisateurs" : "Mon équipe"}</a><span>/</span><span>${esc(person.name)}</span></nav>
 
             <section class="card profile">
               <span class="avatar avatar--lg">${esc(person.initials)}</span>

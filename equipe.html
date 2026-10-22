@@ -27,14 +27,14 @@
     <div class="container">
       <div class="page-header">
         <div>
-          <h1 class="page-title">Mon équipe</h1>
-          <p class="page-subtitle">Service commercial · <span id="team-count"></span> collaborateurs · Formation à terminer avant le 15 décembre</p>
+          <h1 class="page-title" id="team-title">Mon équipe</h1>
+          <p class="page-subtitle" id="team-subtitle">Service commercial · <span id="team-count"></span> collaborateurs · Formation à terminer avant le 15 décembre</p>
         </div>
         <button class="btn btn--primary" id="assign-team"><span data-icon="plus"></span> Assigner un quiz à l'équipe</button>
       </div>
 
       <section class="card">
-        <h2 class="card__title">Notions les plus ratées par l'équipe</h2>
+        <h2 class="card__title" id="notions-title">Notions les plus ratées par l'équipe</h2>
         <p class="card__subtitle">Résultats anonymisés, classés du plus difficile au moins difficile</p>
         <div class="notions" id="notions"></div>
       </section>
@@ -82,6 +82,18 @@
       const total = DATA.parcours.length;
       let notionFilter = null;
       $("#team-count").textContent = DATA.team.length;
+      /* Le super admin (CyberQuest) voit tous les employés : « utilisateurs » plutôt qu'« équipe » */
+      const isAdmin = user.role === "admin";
+      const ofGroup = isAdmin ? "des utilisateurs" : "de l'équipe";
+      if (isAdmin) {
+        $("#notions-title").textContent = "Notions les plus ratées par les utilisateurs";
+        $("#search").placeholder = "Rechercher un utilisateur";
+        $("#search").setAttribute("aria-label", "Rechercher un utilisateur");
+        document.title = "Utilisateurs – CyberQuests";
+        $("#team-title").textContent = "Utilisateurs";
+        $("#team-subtitle").innerHTML = `Tous les employés · ${DATA.team.length} utilisateurs · Formation à terminer avant le 15 décembre`;
+        $("#assign-team").innerHTML = `${icon("plus", 16)} Assigner un quiz`;
+      }
 
       /* ---- Cartes « notions les plus ratées » ---- */
       const level = r => r >= 50 ? ["Priorité", "red"] : r >= 30 ? ["À surveiller", "orange"] : ["Bien maîtrisé", "green"];
@@ -90,13 +102,13 @@
         return `
           <div class="notion">
             <div class="row row--between"><strong>${n.label}</strong><span class="tag tag--${color}">${label}</span></div>
-            <div class="row" style="align-items:flex-end;gap:8px"><span class="notion__rate" style="color:var(--${color})">${n.rate} %</span><span class="small muted">de l'équipe se trompe</span></div>
+            <div class="row" style="align-items:flex-end;gap:8px"><span class="notion__rate" style="color:var(--${color})">${n.rate} %</span><span class="small muted">${ofGroup} se trompe</span></div>
             ${progressBar(n.rate, 100, "progress--" + color)}
             ${n.rate >= 30
               ? `<button class="link" data-remind="${n.id}" style="align-self:flex-start">Planifier un rappel collectif ${icon("chevronRight", 16)}</button>`
               : `<button class="link" data-notion="${n.id}" style="align-self:flex-start">Voir les personnes concernées ${icon("chevronRight", 16)}</button>`}
           </div>`;
-      }).join("") || `<p class="muted">Pas encore de notion à revoir dans l'équipe.</p>`;
+      }).join("") || `<p class="muted">Pas encore de notion à revoir ${isAdmin ? "chez les utilisateurs" : "dans l'équipe"}.</p>`;
 
       /* ---- Liste des collaborateurs ---- */
       function statusOf(p) { return p.done === total ? "done" : p.done === 0 ? "none" : "progress"; }
@@ -135,7 +147,7 @@
               <td class="muted td-inline" data-label="Dernière activité : ">${p.last}</td>
               <td class="td-inline td-end" style="text-align:right"><a class="link" href="collaborateur.html?id=${p.id}">Voir le détail ${icon("chevronRight", 16)}</a></td>
             </tr>`;
-        }).join("") : `<tr><td colspan="5" class="empty">Aucun collaborateur ne correspond à ces critères.</td></tr>`;
+        }).join("") : `<tr><td colspan="5" class="empty">Aucun ${isAdmin ? "utilisateur" : "collaborateur"} ne correspond à ces critères.</td></tr>`;
 
         $$("#rows tr[data-id]").forEach(tr => {
           const go = () => location.href = "collaborateur.html?id=" + tr.dataset.id;
@@ -154,13 +166,13 @@
       /* ---- Assignation à toute l'équipe ---- */
       const modal = setupAssignModal({
         async onAssign({ quizId, due, notify }) {
-          if (!DATA.team.length) { toast("Votre équipe ne compte encore aucun collaborateur."); return; }
+          if (!DATA.team.length) { toast(isAdmin ? "Il n'y a encore aucun utilisateur." : "Votre équipe ne compte encore aucun collaborateur."); return; }
           const group = uid("g");
           try {
             await Assignments.addMany(DATA.team.map(p => ({ group, personId: p.id, quizId, due, notify })));
           } catch (e) { saveError(e); return; }
           render();
-          toast(`Quiz « ${quizById(quizId).name} » assigné aux ${DATA.team.length} collaborateurs.` + (notify ? " Ils ont été prévenus." : ""), {
+          toast(`Quiz « ${quizById(quizId).name} » assigné aux ${DATA.team.length} ${isAdmin ? "utilisateurs" : "collaborateurs"}.` + (notify ? " Ils ont été prévenus." : ""), {
             label: "Annuler",
             async onClick() {
               try { await Assignments.removeGroup(group); } catch (e) { saveError(e); return; }
@@ -170,8 +182,8 @@
         }
       });
       const openTeam = preselect => modal.open({
-        forLabel: `Pour toute l'équipe (${DATA.team.length} collaborateurs)`,
-        notifyLabel: "Prévenir l'équipe par une notification",
+        forLabel: isAdmin ? `Pour tous les utilisateurs (${DATA.team.length})` : `Pour toute l'équipe (${DATA.team.length} collaborateurs)`,
+        notifyLabel: isAdmin ? "Prévenir les utilisateurs par une notification" : "Prévenir l'équipe par une notification",
         suggested: DATA.teamNotions.slice(0, 1).map(n => n.id),
         preselect
       });

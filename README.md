@@ -18,7 +18,7 @@ Sur la page de connexion, cliquer sur un des 3 comptes, ou saisir l'email avec l
 |---|---|
 | Employé (joueur) | camille.bernard@entreprise.fr |
 | Manager | marc.durand@entreprise.fr |
-| Administratrice RH | sophie.leroy@entreprise.fr |
+| Super admin (équipe CyberQuest, crée les quiz) | sophie.leroy@cyberquest.fr |
 
 Pour revenir à l'état de départ : vider le stockage du site dans le navigateur (outils de développement → Application → Local Storage).
 
