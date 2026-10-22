@@ -3,7 +3,10 @@
 Site HTML / CSS / JavaScript sans base de données ni serveur.
 Les données sont fictives (`assets/js/data.js`) et les actions (quiz assignés, questions ajoutées, progression du jeu) sont enregistrées dans le navigateur (localStorage).
 
-## Lancer le site
+## Site en ligne
+https://nomibar.github.io/cyberquest/
+
+## Lancer le site en local
 Ouvrir `index.html` dans un navigateur (Chrome, Edge, Firefox).
 Option : `python -m http.server` dans ce dossier, puis http://localhost:8000.
 
