@@ -19,96 +19,105 @@
     <div class="container" id="content"></div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/db.js"></script>
   <script>
-    requireRole(["manager", "admin"]);
-    renderHeader("equipe");
+    boot(["manager", "admin"], async user => {
+      renderHeader("equipe");
 
-    const person = DATA.team.find(p => p.id === param("id"));
-    const total = DATA.parcours.length;
+      const person = DATA.team.find(p => p.id === param("id"));
+      const total = DATA.parcours.length;
 
-    if (!person) {
-      $("#content").innerHTML = `<div class="card empty">Ce collaborateur est introuvable. <a class="link" href="equipe.html">Retour à mon équipe</a></div>`;
-    } else {
-      document.title = person.name + " – CyberQuests";
-      const firstName = person.name.split(" ")[0];
+      if (!person) {
+        $("#content").innerHTML = `<div class="card empty">Ce collaborateur est introuvable. <a class="link" href="equipe.html">Retour à mon équipe</a></div>`;
+      } else {
+        document.title = person.name + " – CyberQuests";
+        const firstName = esc(person.name.split(" ")[0]);
 
-      const modal = setupAssignModal({
-        onAssign({ quizId, due, notify }) {
-          const a = Assignments.add({ id: uid("a"), personId: person.id, quizId, due, notify, date: todayLabel() });
-          render(a.id);
-          toast(`Quiz « ${quizById(quizId).name} » assigné à ${firstName}.` + (notify ? ` ${firstName} a été prévenu·e.` : ""), {
-            label: "Annuler",
-            onClick() { Assignments.remove(a.id); render(); toast("Assignation annulée."); }
-          });
-        }
-      });
-      const openModalFor = preselect => modal.open({
-        forLabel: "Pour " + person.name,
-        notifyLabel: `Prévenir ${firstName} par une notification`,
-        suggested: person.notions,
-        preselect
-      });
+        const modal = setupAssignModal({
+          async onAssign({ quizId, due, notify }) {
+            let a;
+            try { a = await Assignments.add({ personId: person.id, quizId, due, notify }); } catch (e) { saveError(e); return; }
+            render(a.id);
+            toast(`Quiz « ${quizById(quizId).name} » assigné à ${firstName}.` + (notify ? ` ${firstName} a été prévenu·e.` : ""), {
+              label: "Annuler",
+              async onClick() {
+                try { await Assignments.remove(a.id); } catch (e) { saveError(e); return; }
+                render(); toast("Assignation annulée.");
+              }
+            });
+          }
+        });
+        const openModalFor = preselect => modal.open({
+          forLabel: "Pour " + person.name,
+          notifyLabel: `Prévenir ${firstName} par une notification`,
+          suggested: person.notions,
+          preselect
+        });
 
-      function render(newId) {
-        const { rows, assigned } = personParcours(person);
-        const assignedIds = Assignments.forPerson(person.id).map(a => a.quizId);
-        const list = [...rows];
-        const insertAt = list.findIndex(r => r.status === "todo");
-        list.splice(insertAt < 0 ? list.length : insertAt, 0, ...assigned);
+        function render(newId) {
+          const { rows, assigned } = personParcours(person);
+          const assignedIds = Assignments.forPerson(person.id).map(a => a.quizId);
+          const list = [...rows];
+          const insertAt = list.findIndex(r => r.status === "todo");
+          list.splice(insertAt < 0 ? list.length : insertAt, 0, ...assigned);
 
-        $("#content").innerHTML = `
-          <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="equipe.html">${icon("chevronLeft", 16)} Mon équipe</a><span>/</span><span>${person.name}</span></nav>
+          $("#content").innerHTML = `
+            <nav class="breadcrumb" aria-label="Fil d'Ariane"><a href="equipe.html">${icon("chevronLeft", 16)} Mon équipe</a><span>/</span><span>${esc(person.name)}</span></nav>
 
-          <section class="card profile">
-            <span class="avatar avatar--lg">${person.initials}</span>
-            <div class="grow">
-              <h1 style="font-size:26px">${person.name}</h1>
-              <p class="muted">${person.job} · Service commercial · Dernière activité : ${person.last.toLowerCase()}</p>
-            </div>
-            <button class="btn btn--primary" id="add-quiz">${icon("plus", 18)} Ajouter un quiz</button>
-          </section>
-
-          <div class="cols">
-            <section class="card">
-              <div class="row row--between" style="flex-wrap:wrap;margin-bottom:8px">
-                <h2 class="card__title">Avancement de la formation</h2>
-                <div class="row"><strong>${person.done} / ${total}</strong><div style="width:240px">${progressBar(person.done, total)}</div></div>
+            <section class="card profile">
+              <span class="avatar avatar--lg">${esc(person.initials)}</span>
+              <div class="grow">
+                <h1 style="font-size:26px">${esc(person.name)}</h1>
+                <p class="muted">${[person.job, person.service].filter(Boolean).map(esc).join(" · ")} · Dernière activité : ${person.last.toLowerCase()}</p>
               </div>
-              ${list.map(r => {
-                const html = statusRow(r.name, r.meta, r.status, r.assignmentId ? `<button class="square-btn" data-cancel="${r.assignmentId}" aria-label="Retirer ce quiz" title="Retirer ce quiz">${icon("x", 16)}</button>` : "");
-                return newId && r.assignmentId === newId ? html.replace('class="list-row"', 'class="list-row" style="background:var(--green-light);margin:0 -24px;padding-left:24px;padding-right:24px"') : html;
-              }).join("")}
+              <button class="btn btn--primary" id="add-quiz">${icon("plus", 18)} Ajouter un quiz</button>
             </section>
 
-            <div class="stack">
-              <section class="card stack" style="gap:12px">
-                <h2 class="card__title">Notions à revoir</h2>
-                ${person.notions.length ? person.notions.map(id => {
-                  const q = quizById(id);
-                  const already = assignedIds.includes(id);
-                  return `
-                    <div class="notion-box">
-                      <strong style="color:var(--red)">${q.name}</strong>
-                      <p class="small">${id === "pj" ? "Difficulté à repérer les fichiers inattendus (.zip, .exe)." : id === "qr" ? "Scanne les QR codes sans vérifier leur provenance." : "Notion à consolider."}</p>
-                      ${already ? '<span class="small muted" style="font-weight:600">Quiz déjà assigné</span>'
-                        : `<button class="link" data-suggest="${id}" style="align-self:flex-start">Assigner le quiz conseillé ${icon("arrowRight", 16)}</button>`}
-                    </div>`;
-                }).join("") : `<p class="alert alert--success">${person.done === 0 ? "Pas encore de résultat : " + firstName + " n'a pas commencé sa formation." : "Aucune notion à revoir pour le moment."}</p>`}
+            <div class="cols">
+              <section class="card">
+                <div class="row row--between" style="flex-wrap:wrap;margin-bottom:8px">
+                  <h2 class="card__title">Avancement de la formation</h2>
+                  <div class="row"><strong>${person.done} / ${total}</strong><div style="width:240px">${progressBar(person.done, total)}</div></div>
+                </div>
+                ${list.map(r => {
+                  const html = statusRow(r.name, r.meta, r.status, r.assignmentId ? `<button class="square-btn" data-cancel="${r.assignmentId}" aria-label="Retirer ce quiz" title="Retirer ce quiz">${icon("x", 16)}</button>` : "");
+                  return newId && r.assignmentId === newId ? html.replace('class="list-row"', 'class="list-row" style="background:var(--green-light);margin:0 -24px;padding-left:24px;padding-right:24px"') : html;
+                }).join("")}
               </section>
-              <div class="alert alert--info">${icon("info", 18)}<span class="small">Les réponses détaillées et les scores de ${firstName} ne sont pas visibles. Vous voyez seulement l'avancement et les notions à renforcer.</span></div>
-            </div>
-          </div>`;
 
-        $("#add-quiz").addEventListener("click", () => openModalFor());
-        $$("[data-suggest]").forEach(b => b.addEventListener("click", () => openModalFor(b.dataset.suggest)));
-        $$("[data-cancel]").forEach(b => b.addEventListener("click", () => {
-          Assignments.remove(b.dataset.cancel); render(); toast("Quiz retiré.");
-        }));
+              <div class="stack">
+                <section class="card stack" style="gap:12px">
+                  <h2 class="card__title">Notions à revoir</h2>
+                  ${person.notions.length ? person.notions.map(id => {
+                    const q = quizById(id);
+                    const already = assignedIds.includes(id);
+                    return `
+                      <div class="notion-box">
+                        <strong style="color:var(--red)">${q.name}</strong>
+                        <p class="small">${id === "pj" ? "Difficulté à repérer les fichiers inattendus (.zip, .exe)." : id === "qr" ? "Scanne les QR codes sans vérifier leur provenance." : "Notion à consolider."}</p>
+                        ${already ? '<span class="small muted" style="font-weight:600">Quiz déjà assigné</span>'
+                          : `<button class="link" data-suggest="${id}" style="align-self:flex-start">Assigner le quiz conseillé ${icon("arrowRight", 16)}</button>`}
+                      </div>`;
+                  }).join("") : `<p class="alert alert--success">${person.done === 0 ? "Pas encore de résultat : " + firstName + " n'a pas commencé sa formation." : "Aucune notion à revoir pour le moment."}</p>`}
+                </section>
+                <div class="alert alert--info">${icon("info", 18)}<span class="small">Les réponses détaillées et les scores de ${firstName} ne sont pas visibles. Vous voyez seulement l'avancement et les notions à renforcer.</span></div>
+              </div>
+            </div>`;
+
+          $("#add-quiz").addEventListener("click", () => openModalFor());
+          $$("[data-suggest]").forEach(b => b.addEventListener("click", () => openModalFor(b.dataset.suggest)));
+          $$("[data-cancel]").forEach(b => b.addEventListener("click", async () => {
+            try { await Assignments.remove(b.dataset.cancel); } catch (e) { saveError(e); return; }
+            render(); toast("Quiz retiré.");
+          }));
+        }
+        render();
       }
-      render();
-    }
+    });
   </script>
 </body>
 </html>

@@ -51,57 +51,61 @@
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/db.js"></script>
   <script>
-    const user = requireRole();
-    renderHeader("progression");
-    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 16));
+    boot(null, async user => {
+      renderHeader("progression");
+      $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 16));
 
-    const person = DATA.team.find(p => p.id === user.id) || { id: user.id, done: 2, notions: [] };
-    const { rows, assigned } = personParcours(person);
-    const total = DATA.parcours.length;
-    const history = Store.get("cq_game_history", []);
-    const lastGame = history[history.length - 1];
+      const person = DATA.me;
+      const { rows, assigned } = personParcours(person);
+      const total = DATA.parcours.length;
+      const history = DATA.history;
+      const lastGame = history[history.length - 1];
 
-    /* Bouton « Continuer » : d'abord un quiz assigné, sinon le prochain parcours */
-    const next = assigned[0] ? assigned[0].name.replace("Quiz : ", "") : (rows.find(r => r.status === "todo") || {}).name;
-    $("#continue").innerHTML = next ? `${icon("play", 18)} Continuer : ${esc(next)}` : `${icon("rotate", 18)} Rejouer un mini-jeu`;
+      /* Bouton « Continuer » : d'abord un quiz assigné, sinon le prochain parcours */
+      const next = assigned[0] ? assigned[0].name.replace("Quiz : ", "") : (rows.find(r => r.status === "todo") || {}).name;
+      $("#continue").innerHTML = next ? `${icon("play", 18)} Continuer : ${esc(next)}` : `${icon("rotate", 18)} Rejouer un mini-jeu`;
 
-    const remaining = total - person.done;
-    $("#summary").innerHTML = `
-      <div class="summary__main">
-        <strong style="font-size:24px">${person.done} / ${total} parcours terminés</strong>
-        ${progressBar(person.done, total)}
-        <span class="small muted">${remaining ? `Encore ${remaining} parcours, soit environ ${remaining * 10} minutes.` : "Formation terminée, félicitations !"}</span>
-      </div>
-      <div class="cheer">
-        <span style="color:var(--green)">${icon("award", 24)}</span>
-        <div><strong style="color:var(--green)">Bravo, vous progressez bien !</strong>
-          <div class="small">${lastGame ? `Dernière partie : ${lastGame.firstTry}/${lastGame.total} pièges déjoués du premier coup` : "Badge « Œil de lynx » débloqué"}</div></div>
-      </div>`;
+      const remaining = total - person.done;
+      $("#summary").innerHTML = `
+        <div class="summary__main">
+          <strong style="font-size:24px">${person.done} / ${total} parcours terminés</strong>
+          ${progressBar(person.done, total)}
+          <span class="small muted">${remaining ? `Encore ${remaining} parcours, soit environ ${remaining * 10} minutes.` : "Formation terminée, félicitations !"}</span>
+        </div>
+        <div class="cheer">
+          <span style="color:var(--green)">${icon("award", 24)}</span>
+          <div><strong style="color:var(--green)">Bravo, vous progressez bien !</strong>
+            <div class="small">${lastGame ? `Dernière partie : ${lastGame.firstTry}/${lastGame.total} pièges déjoués du premier coup` : "Badge « Œil de lynx » débloqué"}</div></div>
+        </div>`;
 
-    /* Liste des parcours, avec les quiz assignés par le manager */
-    const actionFor = r => r.status === "done" ? "" :
-      `<a class="link" href="jeu.html">${r.status === "rev" ? "Rejouer" : r.status === "wait" ? "Jouer" : "Commencer"}</a>`;
-    const list = [...rows];
-    const insertAt = list.findIndex(r => r.status === "todo");
-    list.splice(insertAt < 0 ? list.length : insertAt, 0, ...assigned.map(a => ({ ...a, meta: a.meta.replace("Assigné", "Assigné par votre manager") })));
-    $("#parcours").innerHTML = list.map(r => statusRow(r.name, r.meta, r.status, actionFor(r))).join("");
+      /* Liste des parcours, avec les quiz assignés par le manager */
+      const actionFor = r => r.status === "done" ? "" :
+        `<a class="link" href="jeu.html">${r.status === "rev" ? "Rejouer" : r.status === "wait" ? "Jouer" : "Commencer"}</a>`;
+      const list = [...rows];
+      const insertAt = list.findIndex(r => r.status === "todo");
+      list.splice(insertAt < 0 ? list.length : insertAt, 0, ...assigned.map(a => ({ ...a, meta: a.meta.replace("Assigné", "Assigné par votre manager") })));
+      $("#parcours").innerHTML = list.map(r => statusRow(r.name, r.meta, r.status, actionFor(r))).join("");
 
-    /* Notions à revoir */
-    const DESC = { pj: "Les fichiers .zip et .exe inattendus", qr: "Vérifier l'adresse avant de scanner", mdp: "Une phrase de passe différente par compte" };
-    $("#revoir").innerHTML = person.notions.length ? person.notions.map(id => `
-      <div class="revoir">
-        <div class="grow"><strong style="display:block">${quizById(id).name}</strong><span class="small muted">${DESC[id] || ""}</span></div>
-        <a class="link" href="jeu.html">${icon("rotate", 16)} Rejouer</a>
-      </div>`).join("") : '<p class="alert alert--success">Rien à revoir pour le moment, bravo !</p>';
+      /* Notions à revoir */
+      const DESC = { pj: "Les fichiers .zip et .exe inattendus", qr: "Vérifier l'adresse avant de scanner", mdp: "Une phrase de passe différente par compte" };
+      $("#revoir").innerHTML = person.notions.length ? person.notions.map(id => `
+        <div class="revoir">
+          <div class="grow"><strong style="display:block">${quizById(id).name}</strong><span class="small muted">${DESC[id] || ""}</span></div>
+          <a class="link" href="jeu.html">${icon("rotate", 16)} Rejouer</a>
+        </div>`).join("") : '<p class="alert alert--success">Rien à revoir pour le moment, bravo !</p>';
 
-    if (history.length) {
-      $("#history-card").hidden = false;
-      $("#history").innerHTML = history.slice(-3).reverse().map(h =>
-        `<div class="list-row" style="padding:10px 0"><span class="grow">Mini-jeu Phishing · ${esc(h.date)}</span><span class="tag tag--indigo">${h.firstTry}/${h.total} du premier coup</span></div>`).join("");
-    }
+      if (history.length) {
+        $("#history-card").hidden = false;
+        $("#history").innerHTML = history.slice(-3).reverse().map(h =>
+          `<div class="list-row" style="padding:10px 0"><span class="grow">Mini-jeu Phishing · ${esc(h.date)}</span><span class="tag tag--indigo">${h.firstTry}/${h.total} du premier coup</span></div>`).join("");
+      }
+    }, ["history"]);
   </script>
 </body>
 </html>

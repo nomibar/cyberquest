@@ -48,89 +48,99 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/db.js"></script>
   <script>
-    requireRole(["admin"]);
-    renderHeader("admin");
-    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, s.closest(".icon-box") ? 24 : 18));
-    showFlash();
+    boot(["admin"], async user => {
+      renderHeader("admin");
+      $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, s.closest(".icon-box") ? 24 : 18));
+      showFlash();
 
-    let current = param("parcours") || "ia";
-    if (!parcoursById(current)) current = "ia";
-    const highlight = param("nouveau");
-    let pendingDelete = null;
+      let current = param("parcours") || "ia";
+      if (!parcoursById(current)) current = "ia";
+      const highlight = param("nouveau");
+      let pendingDelete = null;
 
-    function render() {
-      const all = Questions.all();
-      const p = parcoursById(current);
-      const qs = all.filter(q => q.parcours === current);
-      const published = qs.filter(q => q.statut === "publie").length;
+      function render() {
+        const all = Questions.all();
+        const p = parcoursById(current);
+        const qs = all.filter(q => q.parcours === current);
+        const published = qs.filter(q => q.statut === "publie").length;
 
-      $("#side").innerHTML = `<h2>Parcours</h2>` + DATA.parcours.map(x => {
-        const n = all.filter(q => q.parcours === x.id).length;
-        return `<a href="admin.html?parcours=${x.id}" data-p="${x.id}" class="${x.id === current ? "is-active" : ""}" ${x.id === current ? 'aria-current="page"' : ""}>
-          <strong style="display:block;font-weight:${x.id === current ? 600 : 500}">${x.name}</strong><span class="small muted">${n} question${n > 1 ? "s" : ""}</span></a>`;
-      }).join("") + `<button class="link" style="padding:12px" id="new-parcours">${icon("plus", 16)} Nouveau parcours</button>`;
+        $("#side").innerHTML = `<h2>Parcours</h2>` + DATA.parcours.map(x => {
+          const n = all.filter(q => q.parcours === x.id).length;
+          return `<a href="admin.html?parcours=${x.id}" data-p="${x.id}" class="${x.id === current ? "is-active" : ""}" ${x.id === current ? 'aria-current="page"' : ""}>
+            <strong style="display:block;font-weight:${x.id === current ? 600 : 500}">${x.name}</strong><span class="small muted">${n} question${n > 1 ? "s" : ""}</span></a>`;
+        }).join("") + `<button class="link" style="padding:12px" id="new-parcours">${icon("plus", 16)} Nouveau parcours</button>`;
 
-      $("#main").innerHTML = `
-        <div class="page-header">
-          <div>
-            <div class="row"><h1 class="page-title" style="font-size:30px">${p.name}</h1>
-              <span class="tag ${published ? "tag--green" : "tag--orange"}">${published ? "Publié" : "Non publié"}</span></div>
-            <p class="page-subtitle" style="font-size:15px">Parcours visible par tous les employés · ${published} question${published > 1 ? "s" : ""} publiée${published > 1 ? "s" : ""} sur ${qs.length}</p>
+        $("#main").innerHTML = `
+          <div class="page-header">
+            <div>
+              <div class="row"><h1 class="page-title" style="font-size:30px">${p.name}</h1>
+                <span class="tag ${published ? "tag--green" : "tag--orange"}">${published ? "Publié" : "Non publié"}</span></div>
+              <p class="page-subtitle" style="font-size:15px">Parcours visible par tous les employés · ${published} question${published > 1 ? "s" : ""} publiée${published > 1 ? "s" : ""} sur ${qs.length}</p>
+            </div>
+            <a class="btn btn--primary" href="admin-question.html?parcours=${current}">${icon("plus", 18)} Ajouter une question</a>
           </div>
-          <a class="btn btn--primary" href="admin-question.html?parcours=${current}">${icon("plus", 18)} Ajouter une question</a>
-        </div>
-        <section class="card card--flush table-wrap">
-          <table class="table">
-            <thead><tr><th>Question</th><th>Format</th><th>Statut</th><th style="text-align:right">Actions</th></tr></thead>
-            <tbody>
-              ${qs.length ? qs.map(q => `
-                <tr class="${q.id === highlight ? "is-new" : ""}">
-                  <td style="font-weight:600">${esc(q.titre)}</td>
-                  <td class="muted"><span class="row" style="gap:8px">${icon(FORMAT_ICONS[q.format] || "file", 16)}${esc(q.format)}</span></td>
-                  <td>${q.statut === "publie"
-                    ? `<span class="tag tag--green">${q.id === highlight ? "Publié · nouveau" : "Publié"}</span>`
-                    : '<span class="tag tag--orange">Brouillon</span>'}</td>
-                  <td><div class="actions">
-                    <a class="square-btn" href="admin-apercu.html?id=${q.id}" aria-label="Aperçu de « ${esc(q.titre)} »" title="Aperçu">${icon("eye", 16)}</a>
-                    <a class="square-btn" href="admin-question.html?id=${q.id}" aria-label="Modifier « ${esc(q.titre)} »" title="Modifier">${icon("edit", 16)}</a>
-                    <button class="square-btn square-btn--danger" data-delete="${q.id}" aria-label="Supprimer « ${esc(q.titre)} »" title="Supprimer">${icon("trash", 16)}</button>
-                  </div></td>
-                </tr>`).join("") : `<tr><td colspan="4" class="empty">Aucune question dans ce parcours pour le moment.</td></tr>`}
-            </tbody>
-          </table>
-        </section>
-        <div class="alert alert--info">${icon("info", 18)}<span>Données collectées pour ce parcours : avancement et notions ratées, rattachés à l'équipe. Aucune réponse détaillée n'est conservée.</span></div>`;
+          <section class="card card--flush table-wrap">
+            <table class="table">
+              <thead><tr><th>Question</th><th>Format</th><th>Statut</th><th style="text-align:right">Actions</th></tr></thead>
+              <tbody>
+                ${qs.length ? qs.map(q => `
+                  <tr class="${q.id === highlight ? "is-new" : ""}">
+                    <td style="font-weight:600">${esc(q.titre)}</td>
+                    <td class="muted"><span class="row" style="gap:8px">${icon(FORMAT_ICONS[q.format] || "file", 16)}${esc(q.format)}</span></td>
+                    <td>${q.statut === "publie"
+                      ? `<span class="tag tag--green">${q.id === highlight ? "Publié · nouveau" : "Publié"}</span>`
+                      : '<span class="tag tag--orange">Brouillon</span>'}</td>
+                    <td><div class="actions">
+                      <a class="square-btn" href="admin-apercu.html?id=${q.id}" aria-label="Aperçu de « ${esc(q.titre)} »" title="Aperçu">${icon("eye", 16)}</a>
+                      <a class="square-btn" href="admin-question.html?id=${q.id}" aria-label="Modifier « ${esc(q.titre)} »" title="Modifier">${icon("edit", 16)}</a>
+                      <button class="square-btn square-btn--danger" data-delete="${q.id}" aria-label="Supprimer « ${esc(q.titre)} »" title="Supprimer">${icon("trash", 16)}</button>
+                    </div></td>
+                  </tr>`).join("") : `<tr><td colspan="4" class="empty">Aucune question dans ce parcours pour le moment.</td></tr>`}
+              </tbody>
+            </table>
+          </section>
+          <div class="alert alert--info">${icon("info", 18)}<span>Données collectées pour ce parcours : avancement et notions ratées, rattachés à l'équipe. Aucune réponse détaillée n'est conservée.</span></div>`;
 
-      $$("[data-delete]").forEach(b => b.addEventListener("click", () => askDelete(b.dataset.delete)));
-      $("#new-parcours").addEventListener("click", () => toast("Création de parcours : prévue dans une prochaine version du prototype."));
-    }
+        $$("[data-delete]").forEach(b => b.addEventListener("click", () => askDelete(b.dataset.delete)));
+        $("#new-parcours").addEventListener("click", () => toast("Création de parcours : prévue dans une prochaine version du prototype."));
+      }
 
-    /* ---- Suppression avec confirmation ---- */
-    const modal = $("#delete-modal");
-    function askDelete(id) {
-      const q = Questions.get(id);
-      pendingDelete = q;
-      $("#delete-desc").textContent = `« ${q.titre} » sera retirée du parcours ${parcoursById(q.parcours).name}. Les employés ne la verront plus. Cette action est définitive.`;
-      $("#to-draft").hidden = q.statut === "brouillon";
-      openModal(modal);
-    }
-    $$("[data-close]", modal).forEach(b => b.addEventListener("click", () => closeModal(modal)));
-    $("#confirm-delete").addEventListener("click", () => {
-      const deleted = pendingDelete;
-      Questions.remove(deleted.id);
-      closeModal(modal); render();
-      toast(`Question « ${esc(deleted.titre)} » supprimée.`, { label: "Annuler", onClick() { Questions.upsert(deleted); render(); toast("Suppression annulée."); } });
+      /* ---- Suppression avec confirmation ---- */
+      const modal = $("#delete-modal");
+      function askDelete(id) {
+        const q = Questions.get(id);
+        pendingDelete = q;
+        $("#delete-desc").textContent = `« ${q.titre} » sera retirée du parcours ${parcoursById(q.parcours).name}. Les employés ne la verront plus. Cette action est définitive.`;
+        $("#to-draft").hidden = q.statut === "brouillon";
+        openModal(modal);
+      }
+      $$("[data-close]", modal).forEach(b => b.addEventListener("click", () => closeModal(modal)));
+      $("#confirm-delete").addEventListener("click", async () => {
+        const deleted = pendingDelete;
+        try { await Questions.remove(deleted.id); } catch (e) { saveError(e); return; }
+        closeModal(modal); render();
+        toast(`Question « ${esc(deleted.titre)} » supprimée.`, {
+          label: "Annuler",
+          async onClick() {
+            try { await Questions.upsert(deleted); } catch (e) { saveError(e); return; }
+            render(); toast("Suppression annulée.");
+          }
+        });
+      });
+      $("#to-draft").addEventListener("click", async () => {
+        try { await Questions.upsert({ ...pendingDelete, statut: "brouillon" }); } catch (e) { saveError(e); return; }
+        closeModal(modal); render();
+        toast("Question repassée en brouillon : elle n'est plus visible par les employés.");
+      });
+
+      render();
     });
-    $("#to-draft").addEventListener("click", () => {
-      Questions.upsert({ ...pendingDelete, statut: "brouillon" });
-      closeModal(modal); render();
-      toast("Question repassée en brouillon : elle n'est plus visible par les employés.");
-    });
-
-    render();
   </script>
 </body>
 </html>

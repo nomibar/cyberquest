@@ -108,68 +108,82 @@ function icon(name, size = 20, extra = "") {
 
 const FORMAT_ICONS = { "Mail": "mail", "Message vocal": "mic", "QR code": "qr", "Conversation": "message", "Image": "image", "Vidéo": "video" };
 
-/* ---------- Session de démonstration ---------- */
+/* ---------- Session (compte Supabase connecté, rempli par boot() dans db.js) ---------- */
 const Session = {
-  role() { return Store.get("cq_session", null); },
-  user() { const r = this.role(); return r ? DATA.users[r] : null; },
-  login(role) { Store.set("cq_session", role); },
-  logout() { Store.remove("cq_session"); }
+  current: null,
+  user() { return this.current; },
+  role() { return this.current ? this.current.role : null; },
+  async logout() { await sb.auth.signOut(); }
 };
-
-/* Page réservée à certains rôles : sinon retour à la connexion */
-function requireRole(roles) {
-  const role = Session.role();
-  if (!role || (roles && !roles.includes(role))) {
-    location.replace("connexion.html" + (role ? "?refus=1" : ""));
-    /* Arrête le script de la page sans afficher d'erreur dans la console */
-    window.addEventListener("error", e => { if (e.message && e.message.includes("CQ_REDIRECT")) e.preventDefault(); });
-    throw new Error("CQ_REDIRECT");
-  }
-  return DATA.users[role];
-}
 
 function homeFor(role) {
   return { joueur: "accueil.html", manager: "equipe.html", admin: "admin.html" }[role] || "accueil.html";
 }
 
-/* ---------- Données modifiables (stockées dans le navigateur) ---------- */
+/* ---------- Données modifiables (enregistrées dans la base) ---------- */
 const Assignments = {
-  all() { return Store.get("cq_assignments", []); },
-  save(list) { Store.set("cq_assignments", list); },
-  forPerson(id) { return this.all().filter(a => a.personId === id); },
-  add(a) { const list = this.all(); list.push(a); this.save(list); return a; },
-  remove(id) { this.save(this.all().filter(a => a.id !== id)); }
+  list: [],
+  all() { return this.list; },
+  forPerson(id) { return this.list.filter(a => a.personId === id); },
+  async addMany(items) {
+    const created = await rows(sb.from("assignments").insert(items.map(a => ({
+      user_id: a.personId, quiz_id: a.quizId, due: a.due || null, notify: a.notify, group_id: a.group || null
+    }))).select());
+    const mapped = created.map(toAssignment);
+    this.list.push(...mapped);
+    return mapped;
+  },
+  async add(a) { return (await this.addMany([a]))[0]; },
+  async remove(id) {
+    await rows(sb.from("assignments").delete().eq("id", id));
+    this.list = this.list.filter(a => a.id !== id);
+  },
+  async removeGroup(group) {
+    await rows(sb.from("assignments").delete().eq("group_id", group));
+    this.list = this.list.filter(a => a.group !== group);
+  }
 };
 
 const Questions = {
-  all() { return Store.get("cq_questions", null) || JSON.parse(JSON.stringify(DATA.questions)); },
-  save(list) { Store.set("cq_questions", list); },
-  get(id) { return this.all().find(q => q.id === id); },
-  upsert(q) {
-    const list = this.all();
-    const i = list.findIndex(x => x.id === q.id);
-    if (i >= 0) list[i] = q; else list.push(q);
-    this.save(list);
+  list: [],
+  all() { return this.list; },
+  get(id) { return this.list.find(q => q.id === id); },
+  async upsert(q) {
+    const saved = toQuestion(await rows(sb.from("questions").upsert(fromQuestion(q)).select().single()));
+    const i = this.list.findIndex(x => x.id === q.id);
+    if (i >= 0) this.list[i] = saved; else this.list.push(saved);
+    return saved;
   },
-  remove(id) { this.save(this.all().filter(q => q.id !== id)); }
+  async remove(id) {
+    await rows(sb.from("questions").delete().eq("id", id));
+    this.list = this.list.filter(q => q.id !== id);
+  }
 };
 
 function quizById(id) { return DATA.quizLibrary.find(q => q.id === id); }
 function parcoursById(id) { return DATA.parcours.find(p => p.id === id); }
 
 /* ---------- Notifications ---------- */
-function notificationsFor(role) {
-  if (role === "joueur") {
-    return Assignments.forPerson(DATA.users.joueur.id).map(a => ({
+function notificationsFor(user) {
+  if (user.role === "joueur") {
+    return Assignments.forPerson(user.id).filter(a => a.notify).map(a => ({
       key: a.id,
       text: `Votre manager vous a assigné le quiz « ${quizById(a.quizId).name} »` + (a.due ? ` à faire avant le ${formatDate(a.due)}.` : "."),
       href: "progression.html"
     }));
   }
-  if (role === "manager") {
-    return [{ key: "m1", text: "Inès Fontaine a terminé toute sa formation.", href: "collaborateur.html?id=if" }];
+  if (user.role === "manager") {
+    return DATA.team.filter(p => p.done === DATA.parcours.length).map(p => ({
+      key: "fini-" + p.id, text: `${p.name} a terminé toute sa formation.`, href: "collaborateur.html?id=" + p.id
+    }));
   }
-  return [{ key: "a1", text: "Pensez à mettre à jour le parcours « IA & deepfakes » : 1 question en brouillon.", href: "admin.html?parcours=ia" }];
+  return DATA.parcours.map(p => ({ p, drafts: Questions.all().filter(q => q.parcours === p.id && q.statut !== "publie").length }))
+    .filter(x => x.drafts)
+    .map(({ p, drafts }) => ({
+      key: `brouillon-${p.id}-${drafts}`,
+      text: `Pensez à mettre à jour le parcours « ${p.name} » : ${drafts} question${drafts > 1 ? "s" : ""} en brouillon.`,
+      href: "admin.html?parcours=" + p.id
+    }));
 }
 
 /* ---------- Header ---------- */
@@ -184,8 +198,9 @@ function renderHeader(active) {
   const el = $("#app-header");
   if (!el || !user) return;
 
-  const notifs = notificationsFor(user.role);
-  const seen = Store.get("cq_seen_notifs", []);
+  const notifs = notificationsFor(user);
+  const seenKey = "cq_seen_notifs_" + user.id;
+  const seen = Store.get(seenKey, []);
   const unseen = notifs.some(n => !seen.includes(n.key));
 
   el.className = "header";
@@ -215,7 +230,7 @@ function renderHeader(active) {
               <div><strong>${esc(user.name)}</strong><div class="small muted">${DATA.roleLabels[user.role]} · ${esc(user.job)}</div></div>
             </div>
           </div>
-          <a href="connexion.html">${icon("swap", 18)} Changer de compte démo</a>
+          <button class="dropdown__item" id="switch-btn">${icon("swap", 18)} Changer de compte</button>
           <button class="dropdown__item" id="logout-btn">${icon("logout", 18)} Se déconnecter</button>
         </div>
       </div>
@@ -232,14 +247,15 @@ function renderHeader(active) {
   };
   const nb = $("#notif-btn"), pb = $("#profile-btn"), nm = $("#notif-menu"), pm = $("#profile-menu");
   toggle(nb, nm, pm, () => {
-    Store.set("cq_seen_notifs", [...new Set([...seen, ...notifs.map(n => n.key)])]);
+    Store.set(seenKey, [...new Set([...seen, ...notifs.map(n => n.key)])]);
     const dot = $(".dot", nb); if (dot) dot.remove();
   });
   toggle(pb, pm, nm);
   document.addEventListener("click", e => {
     if (!e.target.closest(".dropdown")) { nm.classList.remove("is-open"); pm.classList.remove("is-open"); }
   });
-  $("#logout-btn").addEventListener("click", () => { Session.logout(); location.href = "index.html"; });
+  $("#logout-btn").addEventListener("click", async () => { await Session.logout(); location.href = "index.html"; });
+  $("#switch-btn").addEventListener("click", async () => { await Session.logout(); location.href = "connexion.html"; });
 }
 
 /* ---------- Toast ---------- */
@@ -308,13 +324,14 @@ function statusRow(name, meta, status, actionHtml = "") {
 
 /* Parcours d'une personne de l'équipe, avec les quiz assignés */
 function personParcours(person) {
-  const rows = DATA.parcours.map((p, i) => {
-    const done = i < person.done;
-    const rev = done && person.notions.includes(p.id);
+  const next = DATA.parcours.find(p => !person.completed[p.id]);
+  const rows = DATA.parcours.map(p => {
+    const doneAt = person.completed[p.id];
+    const rev = !!doneAt && person.notions.includes(p.id);
     return {
       name: p.name,
-      meta: done ? `Terminé le ${DATA.doneDates[i]}` + (rev ? " · notion à revoir" : "") : (i === person.done ? "Prochain parcours" : "Pas encore commencé"),
-      status: rev ? "rev" : done ? "done" : "todo",
+      meta: doneAt ? `Terminé le ${shortDate(doneAt)}` + (rev ? " · notion à revoir" : "") : (p === next ? "Prochain parcours" : "Pas encore commencé"),
+      status: rev ? "rev" : doneAt ? "done" : "todo",
       parcoursId: p.id
     };
   });

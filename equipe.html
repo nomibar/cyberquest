@@ -70,108 +70,118 @@
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/db.js"></script>
   <script>
-    requireRole(["manager", "admin"]);
-    renderHeader("equipe");
-    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 16));
-    showFlash();
+    boot(["manager", "admin"], async user => {
+      renderHeader("equipe");
+      $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 16));
+      showFlash();
 
-    const total = DATA.parcours.length;
-    let notionFilter = null;
-    $("#team-count").textContent = DATA.team.length;
+      const total = DATA.parcours.length;
+      let notionFilter = null;
+      $("#team-count").textContent = DATA.team.length;
 
-    /* ---- Cartes « notions les plus ratées » ---- */
-    const level = r => r >= 50 ? ["Priorité", "red"] : r >= 30 ? ["À surveiller", "orange"] : ["Bien maîtrisé", "green"];
-    $("#notions").innerHTML = DATA.teamNotions.map(n => {
-      const [label, color] = level(n.rate);
-      return `
-        <div class="notion">
-          <div class="row row--between"><strong>${n.label}</strong><span class="tag tag--${color}">${label}</span></div>
-          <div class="row" style="align-items:flex-end;gap:8px"><span class="notion__rate" style="color:var(--${color})">${n.rate} %</span><span class="small muted">de l'équipe se trompe</span></div>
-          ${progressBar(n.rate, 100, "progress--" + color)}
-          ${n.rate >= 30
-            ? `<button class="link" data-remind="${n.id}" style="align-self:flex-start">Planifier un rappel collectif ${icon("chevronRight", 16)}</button>`
-            : `<button class="link" data-notion="${n.id}" style="align-self:flex-start">Voir les personnes concernées ${icon("chevronRight", 16)}</button>`}
-        </div>`;
-    }).join("");
-
-    /* ---- Liste des collaborateurs ---- */
-    function statusOf(p) { return p.done === total ? "done" : p.done === 0 ? "none" : "progress"; }
-
-    function render() {
-      const q = $("#search").value.trim().toLowerCase();
-      const f = $("#filter").value;
-      const people = [...DATA.team]
-        .sort((a, b) => a.name.localeCompare(b.name, "fr"))
-        .filter(p => p.name.toLowerCase().includes(q) || p.job.toLowerCase().includes(q))
-        .filter(p => {
-          const pending = Assignments.forPerson(p.id).length > 0;
-          if (f === "revoir") return p.notions.length > 0;
-          if (f === "assigned") return pending;
-          return f === "all" || statusOf(p) === f;
-        })
-        .filter(p => !notionFilter || p.notions.includes(notionFilter));
-
-      $("#list-count").textContent = people.length;
-      $("#active-filter").innerHTML = notionFilter
-        ? `<div class="row" style="padding:0 24px 16px"><span class="tag tag--indigo">Notion : ${quizById(notionFilter).name}</span><button class="link" id="clear-notion">Retirer le filtre</button></div>` : "";
-      if (notionFilter) $("#clear-notion").addEventListener("click", () => { notionFilter = null; render(); });
-
-      $("#rows").innerHTML = people.length ? people.map(p => {
-        const pending = Assignments.forPerson(p.id);
-        const tags = [
-          ...p.notions.map(id => `<span class="tag tag--red">${quizById(id).notion}</span>`),
-          ...pending.map(a => `<span class="tag tag--orange">Quiz assigné · ${quizById(a.quizId).notion}</span>`)
-        ];
-        if (!tags.length) tags.push(p.done === total ? '<span class="tag tag--green">Tout est maîtrisé</span>' : p.done === 0 ? '<span class="tag tag--grey">Pas encore commencé</span>' : '<span class="tag tag--grey">Rien à signaler</span>');
+      /* ---- Cartes « notions les plus ratées » ---- */
+      const level = r => r >= 50 ? ["Priorité", "red"] : r >= 30 ? ["À surveiller", "orange"] : ["Bien maîtrisé", "green"];
+      $("#notions").innerHTML = DATA.teamNotions.map(n => {
+        const [label, color] = level(n.rate);
         return `
-          <tr class="is-clickable" data-id="${p.id}" tabindex="0">
-            <td><div class="person"><span class="avatar">${p.initials}</span><div><div style="font-weight:600">${p.name}</div><div class="small muted">${p.job}</div></div></div></td>
-            <td class="col-progress"><div class="small" style="font-weight:500;margin-bottom:8px">${p.done} / ${total} parcours terminés</div>${progressBar(p.done, total)}</td>
-            <td><div class="tags">${tags.join("")}</div></td>
-            <td class="muted">${p.last}</td>
-            <td style="text-align:right"><a class="link" href="collaborateur.html?id=${p.id}">Voir le détail ${icon("chevronRight", 16)}</a></td>
-          </tr>`;
-      }).join("") : `<tr><td colspan="5" class="empty">Aucun collaborateur ne correspond à ces critères.</td></tr>`;
+          <div class="notion">
+            <div class="row row--between"><strong>${n.label}</strong><span class="tag tag--${color}">${label}</span></div>
+            <div class="row" style="align-items:flex-end;gap:8px"><span class="notion__rate" style="color:var(--${color})">${n.rate} %</span><span class="small muted">de l'équipe se trompe</span></div>
+            ${progressBar(n.rate, 100, "progress--" + color)}
+            ${n.rate >= 30
+              ? `<button class="link" data-remind="${n.id}" style="align-self:flex-start">Planifier un rappel collectif ${icon("chevronRight", 16)}</button>`
+              : `<button class="link" data-notion="${n.id}" style="align-self:flex-start">Voir les personnes concernées ${icon("chevronRight", 16)}</button>`}
+          </div>`;
+      }).join("") || `<p class="muted">Pas encore de notion à revoir dans l'équipe.</p>`;
 
-      $$("#rows tr[data-id]").forEach(tr => {
-        const go = () => location.href = "collaborateur.html?id=" + tr.dataset.id;
-        tr.addEventListener("click", e => { if (!e.target.closest("a")) go(); });
-        tr.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
-      });
-    }
+      /* ---- Liste des collaborateurs ---- */
+      function statusOf(p) { return p.done === total ? "done" : p.done === 0 ? "none" : "progress"; }
 
-    $("#search").addEventListener("input", render);
-    $("#filter").addEventListener("change", render);
-    $$("[data-notion]").forEach(b => b.addEventListener("click", () => {
-      notionFilter = b.dataset.notion; render();
-      $("#rows").scrollIntoView({ behavior: "smooth", block: "center" });
-    }));
+      function render() {
+        const q = $("#search").value.trim().toLowerCase();
+        const f = $("#filter").value;
+        const people = [...DATA.team]
+          .sort((a, b) => a.name.localeCompare(b.name, "fr"))
+          .filter(p => p.name.toLowerCase().includes(q) || p.job.toLowerCase().includes(q))
+          .filter(p => {
+            const pending = Assignments.forPerson(p.id).length > 0;
+            if (f === "revoir") return p.notions.length > 0;
+            if (f === "assigned") return pending;
+            return f === "all" || statusOf(p) === f;
+          })
+          .filter(p => !notionFilter || p.notions.includes(notionFilter));
 
-    /* ---- Assignation à toute l'équipe ---- */
-    const modal = setupAssignModal({
-      onAssign({ quizId, due, notify }) {
-        const group = uid("g");
-        DATA.team.forEach(p => Assignments.add({ id: uid("a"), group, personId: p.id, quizId, due, notify, date: todayLabel() }));
-        render();
-        toast(`Quiz « ${quizById(quizId).name} » assigné aux ${DATA.team.length} collaborateurs.` + (notify ? " Ils ont été prévenus." : ""), {
-          label: "Annuler",
-          onClick() { Assignments.save(Assignments.all().filter(a => a.group !== group)); render(); toast("Assignation annulée."); }
+        $("#list-count").textContent = people.length;
+        $("#active-filter").innerHTML = notionFilter
+          ? `<div class="row" style="padding:0 24px 16px"><span class="tag tag--indigo">Notion : ${quizById(notionFilter).name}</span><button class="link" id="clear-notion">Retirer le filtre</button></div>` : "";
+        if (notionFilter) $("#clear-notion").addEventListener("click", () => { notionFilter = null; render(); });
+
+        $("#rows").innerHTML = people.length ? people.map(p => {
+          const pending = Assignments.forPerson(p.id);
+          const tags = [
+            ...p.notions.map(id => `<span class="tag tag--red">${quizById(id).notion}</span>`),
+            ...pending.map(a => `<span class="tag tag--orange">Quiz assigné · ${quizById(a.quizId).notion}</span>`)
+          ];
+          if (!tags.length) tags.push(p.done === total ? '<span class="tag tag--green">Tout est maîtrisé</span>' : p.done === 0 ? '<span class="tag tag--grey">Pas encore commencé</span>' : '<span class="tag tag--grey">Rien à signaler</span>');
+          return `
+            <tr class="is-clickable" data-id="${p.id}" tabindex="0">
+              <td><div class="person"><span class="avatar">${p.initials}</span><div><div style="font-weight:600">${esc(p.name)}</div><div class="small muted">${esc(p.job)}</div></div></div></td>
+              <td class="col-progress"><div class="small" style="font-weight:500;margin-bottom:8px">${p.done} / ${total} parcours terminés</div>${progressBar(p.done, total)}</td>
+              <td><div class="tags">${tags.join("")}</div></td>
+              <td class="muted">${p.last}</td>
+              <td style="text-align:right"><a class="link" href="collaborateur.html?id=${p.id}">Voir le détail ${icon("chevronRight", 16)}</a></td>
+            </tr>`;
+        }).join("") : `<tr><td colspan="5" class="empty">Aucun collaborateur ne correspond à ces critères.</td></tr>`;
+
+        $$("#rows tr[data-id]").forEach(tr => {
+          const go = () => location.href = "collaborateur.html?id=" + tr.dataset.id;
+          tr.addEventListener("click", e => { if (!e.target.closest("a")) go(); });
+          tr.addEventListener("keydown", e => { if (e.key === "Enter") go(); });
         });
       }
-    });
-    const openTeam = preselect => modal.open({
-      forLabel: `Pour toute l'équipe (${DATA.team.length} collaborateurs)`,
-      notifyLabel: "Prévenir l'équipe par une notification",
-      suggested: [DATA.teamNotions[0].id],
-      preselect
-    });
-    $("#assign-team").addEventListener("click", () => openTeam());
-    $$("[data-remind]").forEach(b => b.addEventListener("click", () => openTeam(b.dataset.remind)));
 
-    render();
+      $("#search").addEventListener("input", render);
+      $("#filter").addEventListener("change", render);
+      $$("[data-notion]").forEach(b => b.addEventListener("click", () => {
+        notionFilter = b.dataset.notion; render();
+        $("#rows").scrollIntoView({ behavior: "smooth", block: "center" });
+      }));
+
+      /* ---- Assignation à toute l'équipe ---- */
+      const modal = setupAssignModal({
+        async onAssign({ quizId, due, notify }) {
+          if (!DATA.team.length) { toast("Votre équipe ne compte encore aucun collaborateur."); return; }
+          const group = crypto.randomUUID();
+          try {
+            await Assignments.addMany(DATA.team.map(p => ({ group, personId: p.id, quizId, due, notify })));
+          } catch (e) { saveError(e); return; }
+          render();
+          toast(`Quiz « ${quizById(quizId).name} » assigné aux ${DATA.team.length} collaborateurs.` + (notify ? " Ils ont été prévenus." : ""), {
+            label: "Annuler",
+            async onClick() {
+              try { await Assignments.removeGroup(group); } catch (e) { saveError(e); return; }
+              render(); toast("Assignation annulée.");
+            }
+          });
+        }
+      });
+      const openTeam = preselect => modal.open({
+        forLabel: `Pour toute l'équipe (${DATA.team.length} collaborateurs)`,
+        notifyLabel: "Prévenir l'équipe par une notification",
+        suggested: DATA.teamNotions.slice(0, 1).map(n => n.id),
+        preselect
+      });
+      $("#assign-team").addEventListener("click", () => openTeam());
+      $$("[data-remind]").forEach(b => b.addEventListener("click", () => openTeam(b.dataset.remind)));
+
+      render();
+    });
   </script>
 </body>
 </html>

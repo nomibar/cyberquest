@@ -31,97 +31,101 @@
     <div class="container" id="content"></div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/db.js"></script>
   <script>
-    requireRole(["admin"]);
-    renderHeader("admin");
+    boot(["admin"], async user => {
+      renderHeader("admin");
 
-    const q = Questions.get(param("id"));
+      const q = Questions.get(param("id"));
 
-    if (!q) {
-      $("#content").innerHTML = `<div class="card empty">Question introuvable. <a class="link" href="admin.html">Retour à l'administration</a></div>`;
-    } else {
-      const p = parcoursById(q.parcours);
-      const complete = q.situation && q.reponses && q.reponses.length >= 2;
-      const isDraft = q.statut !== "publie";
-
-      $("#bar").innerHTML = `
-        <span style="color:var(--indigo)">${icon("eye", 22)}</span>
-        <div class="grow">
-          <strong style="color:var(--indigo)">Aperçu : voici ce que verront les employés</strong>
-          <div class="small">${isDraft ? "Rien n'est publié tant que vous n'avez pas cliqué sur « Publier »." : "Cette question est déjà publiée."}</div>
-        </div>
-        <a class="btn btn--secondary" href="admin-question.html?id=${q.id}">${icon("edit", 18)} Modifier</a>
-        ${isDraft
-          ? `<button class="btn btn--primary" id="publish" ${complete ? "" : "disabled"}>${icon("send", 18)} Publier dans « ${esc(p.name)} »</button>`
-          : `<a class="btn btn--primary" href="admin.html?parcours=${q.parcours}">Retour au parcours</a>`}`;
-
-      if (!complete) {
-        $("#content").innerHTML = `
-          <div class="frame" style="align-items:center;text-align:center">
-            <span class="icon-box icon-box--orange" style="border-radius:50%">${icon("warning", 24)}</span>
-            <h1 style="font-size:24px">Aperçu indisponible</h1>
-            <p class="muted">Cette question n'a pas encore de mise en situation ni de réponses. Complétez-la pour voir l'aperçu.</p>
-            <a class="btn btn--primary" href="admin-question.html?id=${q.id}">${icon("edit", 18)} Compléter la question</a>
-          </div>`;
+      if (!q) {
+        $("#content").innerHTML = `<div class="card empty">Question introuvable. <a class="link" href="admin.html">Retour à l'administration</a></div>`;
       } else {
-        const audio = q.format === "Message vocal";
-        const heights = [8,14,22,12,18,26,10,16,24,30,14,20,8,18,26,12,22,16,10,20,28,14,18,8,24,12,16,22,10,18,26,14,20,12,8,16,22,18,10,14];
-        const media = audio ? `
-          <div class="player">
-            <button class="play" id="play" aria-label="Lire le message">${icon("play", 18)}</button>
-            <div class="grow">
-              <strong>Message vocal${q.fichier ? " · " + esc(q.fichier) : ""} · 0:18</strong>
-              <div class="wave" id="wave">${heights.map(h => `<span style="height:${h}px"></span>`).join("")}</div>
-            </div>
-          </div>
-          <div class="situation"><div class="label-caps" style="margin-bottom:6px">Transcription</div><p>${esc(q.situation)}</p></div>`
-          : `<div class="situation"><div class="row" style="gap:8px;margin-bottom:6px;color:var(--grey)">${icon(FORMAT_ICONS[q.format] || "file", 16)}<span class="label-caps">${esc(q.format)}</span></div><p>${esc(q.situation)}</p>${q.fichier ? `<p class="small muted" style="margin-top:8px">${icon("paperclip", 14)} ${esc(q.fichier)}</p>` : ""}</div>`;
+        const p = parcoursById(q.parcours);
+        const complete = q.situation && q.reponses && q.reponses.length >= 2;
+        const isDraft = q.statut !== "publie";
 
-        $("#content").innerHTML = `
-          <div class="frame">
-            <div style="text-align:center">
-              <h1 style="font-size:26px">${audio ? "Vous recevez ce message vocal. Que faites-vous ?" : "Que faites-vous dans cette situation ?"}</h1>
-              <p class="muted">Mini-jeu · ${esc(p.name)} · ${esc(q.titre)}</p>
-            </div>
-            ${media}
-            <div class="answers" id="answers">
-              ${q.reponses.map((r, i) => `<button class="option" data-i="${i}"><strong>${esc(r)}</strong></button>`).join("")}
-            </div>
-            <div id="feedback"></div>
+        $("#bar").innerHTML = `
+          <span style="color:var(--indigo)">${icon("eye", 22)}</span>
+          <div class="grow">
+            <strong style="color:var(--indigo)">Aperçu : voici ce que verront les employés</strong>
+            <div class="small">${isDraft ? "Rien n'est publié tant que vous n'avez pas cliqué sur « Publier »." : "Cette question est déjà publiée."}</div>
           </div>
-          <p class="note" style="justify-content:center">${icon("info", 16)} Vous pouvez cliquer sur une réponse pour tester le retour affiché au joueur.</p>`;
+          <a class="btn btn--secondary" href="admin-question.html?id=${q.id}">${icon("edit", 18)} Modifier</a>
+          ${isDraft
+            ? `<button class="btn btn--primary" id="publish" ${complete ? "" : "disabled"}>${icon("send", 18)} Publier dans « ${esc(p.name)} »</button>`
+            : `<a class="btn btn--primary" href="admin.html?parcours=${q.parcours}">Retour au parcours</a>`}`;
 
-        $$("#answers .option").forEach(b => b.addEventListener("click", () => {
-          const i = +b.dataset.i, ok = i === q.correct;
-          $$("#answers .option").forEach((o, j) => o.className = "option" + (j === q.correct ? " is-correct" : j === i ? " is-wrong" : ""));
-          $("#feedback").innerHTML = `
-            <div class="alert ${ok ? "alert--success" : "alert--warning"}">
-              <span style="color:${ok ? "var(--green)" : "var(--orange)"}">${icon(ok ? "check" : "heart", 20)}</span>
-              <div><strong>${ok ? "Bien vu !" : "Oups, c'était un piège… pas d'inquiétude !"}</strong><p>${esc(q.explication)}</p></div>
+        if (!complete) {
+          $("#content").innerHTML = `
+            <div class="frame" style="align-items:center;text-align:center">
+              <span class="icon-box icon-box--orange" style="border-radius:50%">${icon("warning", 24)}</span>
+              <h1 style="font-size:24px">Aperçu indisponible</h1>
+              <p class="muted">Cette question n'a pas encore de mise en situation ni de réponses. Complétez-la pour voir l'aperçu.</p>
+              <a class="btn btn--primary" href="admin-question.html?id=${q.id}">${icon("edit", 18)} Compléter la question</a>
             </div>`;
-        }));
+        } else {
+          const audio = q.format === "Message vocal";
+          const heights = [8,14,22,12,18,26,10,16,24,30,14,20,8,18,26,12,22,16,10,20,28,14,18,8,24,12,16,22,10,18,26,14,20,12,8,16,22,18,10,14];
+          const media = audio ? `
+            <div class="player">
+              <button class="play" id="play" aria-label="Lire le message">${icon("play", 18)}</button>
+              <div class="grow">
+                <strong>Message vocal${q.fichier ? " · " + esc(q.fichier) : ""} · 0:18</strong>
+                <div class="wave" id="wave">${heights.map(h => `<span style="height:${h}px"></span>`).join("")}</div>
+              </div>
+            </div>
+            <div class="situation"><div class="label-caps" style="margin-bottom:6px">Transcription</div><p>${esc(q.situation)}</p></div>`
+            : `<div class="situation"><div class="row" style="gap:8px;margin-bottom:6px;color:var(--grey)">${icon(FORMAT_ICONS[q.format] || "file", 16)}<span class="label-caps">${esc(q.format)}</span></div><p>${esc(q.situation)}</p>${q.fichier ? `<p class="small muted" style="margin-top:8px">${icon("paperclip", 14)} ${esc(q.fichier)}</p>` : ""}</div>`;
 
-        const play = $("#play");
-        if (play) play.addEventListener("click", () => {
-          const bars = $$("#wave span");
-          let k = 0;
-          play.disabled = true;
-          const t = setInterval(() => {
-            if (k < bars.length) bars[k++].classList.add("on");
-            else { clearInterval(t); play.disabled = false; bars.forEach(b => b.classList.remove("on")); }
-          }, 60);
+          $("#content").innerHTML = `
+            <div class="frame">
+              <div style="text-align:center">
+                <h1 style="font-size:26px">${audio ? "Vous recevez ce message vocal. Que faites-vous ?" : "Que faites-vous dans cette situation ?"}</h1>
+                <p class="muted">Mini-jeu · ${esc(p.name)} · ${esc(q.titre)}</p>
+              </div>
+              ${media}
+              <div class="answers" id="answers">
+                ${q.reponses.map((r, i) => `<button class="option" data-i="${i}"><strong>${esc(r)}</strong></button>`).join("")}
+              </div>
+              <div id="feedback"></div>
+            </div>
+            <p class="note" style="justify-content:center">${icon("info", 16)} Vous pouvez cliquer sur une réponse pour tester le retour affiché au joueur.</p>`;
+
+          $$("#answers .option").forEach(b => b.addEventListener("click", () => {
+            const i = +b.dataset.i, ok = i === q.correct;
+            $$("#answers .option").forEach((o, j) => o.className = "option" + (j === q.correct ? " is-correct" : j === i ? " is-wrong" : ""));
+            $("#feedback").innerHTML = `
+              <div class="alert ${ok ? "alert--success" : "alert--warning"}">
+                <span style="color:${ok ? "var(--green)" : "var(--orange)"}">${icon(ok ? "check" : "heart", 20)}</span>
+                <div><strong>${ok ? "Bien vu !" : "Oups, c'était un piège… pas d'inquiétude !"}</strong><p>${esc(q.explication)}</p></div>
+              </div>`;
+          }));
+
+          const play = $("#play");
+          if (play) play.addEventListener("click", () => {
+            const bars = $$("#wave span");
+            let k = 0;
+            play.disabled = true;
+            const t = setInterval(() => {
+              if (k < bars.length) bars[k++].classList.add("on");
+              else { clearInterval(t); play.disabled = false; bars.forEach(b => b.classList.remove("on")); }
+            }, 60);
+          });
+        }
+
+        const pub = $("#publish");
+        if (pub) pub.addEventListener("click", async () => {
+          try { await Questions.upsert({ ...q, statut: "publie" }); } catch (e) { saveError(e); return; }
+          flash(`Question publiée : elle apparaît maintenant dans le parcours « ${esc(p.name)} ».`);
+          location.href = `admin.html?parcours=${q.parcours}&nouveau=${q.id}`;
         });
       }
-
-      const pub = $("#publish");
-      if (pub) pub.addEventListener("click", () => {
-        Questions.upsert({ ...q, statut: "publie" });
-        flash(`Question publiée : elle apparaît maintenant dans le parcours « ${esc(p.name)} ».`);
-        location.href = `admin.html?parcours=${q.parcours}&nouveau=${q.id}`;
-      });
-    }
+    });
   </script>
 </body>
 </html>

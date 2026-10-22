@@ -90,133 +90,137 @@
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
+  <script src="assets/js/db.js"></script>
   <script>
-    requireRole(["admin"]);
-    renderHeader("admin");
-    $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 18));
+    boot(["admin"], async user => {
+      renderHeader("admin");
+      $$("[data-icon]").forEach(s => s.outerHTML = icon(s.dataset.icon, 18));
 
-    const editing = param("id") ? Questions.get(param("id")) : null;
-    const parcoursId = editing ? editing.parcours : (parcoursById(param("parcours")) ? param("parcours") : "ia");
-    const p = parcoursById(parcoursId);
-    let answers = editing && editing.reponses ? [...editing.reponses] : ["", "", ""];
-    let correct = editing && editing.reponses ? editing.correct : 0;
+      const editing = param("id") ? Questions.get(param("id")) : null;
+      const parcoursId = editing ? editing.parcours : (parcoursById(param("parcours")) ? param("parcours") : "ia");
+      const p = parcoursById(parcoursId);
+      let answers = editing && editing.reponses ? [...editing.reponses] : ["", "", ""];
+      let correct = editing && editing.reponses ? editing.correct : 0;
 
-    $("#back-link").href = $("#cancel").href = "admin.html?parcours=" + parcoursId;
-    $("#back-label").textContent = p.name;
-    $("#crumb").textContent = editing ? "Modifier une question" : "Nouvelle question";
-    $("#page-title").textContent = editing ? "Modifier la question" : "Nouvelle question";
-    document.title = $("#page-title").textContent + " – CyberQuests";
-    if (editing) $("#fill-demo").hidden = true;
+      $("#back-link").href = $("#cancel").href = "admin.html?parcours=" + parcoursId;
+      $("#back-label").textContent = p.name;
+      $("#crumb").textContent = editing ? "Modifier une question" : "Nouvelle question";
+      $("#page-title").textContent = editing ? "Modifier la question" : "Nouvelle question";
+      document.title = $("#page-title").textContent + " – CyberQuests";
+      if (editing) $("#fill-demo").hidden = true;
 
-    $("#format").innerHTML = DATA.formats.map(f => `<option>${f}</option>`).join("");
-    $("#notion").innerHTML = DATA.notionsList.map(n => `<option>${n}</option>`).join("");
+      $("#format").innerHTML = DATA.formats.map(f => `<option>${f}</option>`).join("");
+      $("#notion").innerHTML = DATA.notionsList.map(n => `<option>${n}</option>`).join("");
 
-    function fill(q) {
-      $("#format").value = q.format || "Mail";
-      $("#notion").value = q.notion || DATA.notionsList[0];
-      $("#titre").value = q.titre || "";
-      $("#situation").value = q.situation || "";
-      $("#explication").value = q.explication || "";
-      if (q.fichier) { $("#file-name").textContent = q.fichier; $("#file-info").textContent = "Fichier joint · cliquez pour remplacer"; }
-    }
-    if (editing) fill(editing);
-    else if (parcoursId === "ia") { $("#format").value = "Message vocal"; $("#notion").value = "Deepfakes vocaux"; }
-
-    function renderAnswers() {
-      $("#answers").innerHTML = answers.map((a, i) => `
-        <div class="answer ${i === correct ? "is-correct" : ""}">
-          <input type="radio" name="correct" value="${i}" ${i === correct ? "checked" : ""} aria-label="Bonne réponse : réponse ${i + 1}">
-          <input type="text" value="${esc(a)}" data-i="${i}" placeholder="Réponse ${i + 1}" aria-label="Réponse ${i + 1}">
-          ${i === correct ? '<span class="tag tag--green" style="background:#fff">Bonne réponse</span>' : ""}
-          ${answers.length > 2 ? `<button type="button" class="square-btn" style="border:0;background:transparent" data-remove="${i}" aria-label="Supprimer la réponse ${i + 1}">${icon("x", 16)}</button>` : ""}
-        </div>`).join("");
-      $$('#answers input[type="text"]').forEach(inp => inp.addEventListener("input", () => { answers[+inp.dataset.i] = inp.value; }));
-      $$('#answers input[type="radio"]').forEach(r => r.addEventListener("change", () => { correct = +r.value; renderAnswers(); }));
-      $$("[data-remove]").forEach(b => b.addEventListener("click", () => {
-        const i = +b.dataset.remove;
-        answers.splice(i, 1);
-        if (correct === i) correct = 0; else if (correct > i) correct--;
-        renderAnswers();
-      }));
-      $("#add-answer").hidden = answers.length >= 5;
-    }
-    renderAnswers();
-    $("#add-answer").addEventListener("click", () => { answers.push(""); renderAnswers(); $$('#answers input[type="text"]').pop().focus(); });
-
-    $("#file").addEventListener("change", e => {
-      const f = e.target.files[0];
-      if (!f) return;
-      $("#file-name").textContent = f.name;
-      $("#file-info").textContent = `${Math.max(1, Math.round(f.size / 1024))} Ko · cliquez pour remplacer`;
-    });
-
-    $("#fill-demo").addEventListener("click", () => {
-      fill({
-        format: "Message vocal", notion: "Deepfakes vocaux",
-        titre: "Message vocal de votre directeur",
-        situation: "« Bonjour, c'est Marc. Je suis en rendez-vous, j'ai besoin que tu fasses un virement de 8 400 € au nouveau fournisseur avant midi. Je t'envoie le RIB par mail. Merci, c'est urgent. »",
-        explication: "Une voix peut être imitée par l'IA à partir de quelques secondes d'enregistrement. Pour toute demande d'argent inhabituelle, rappelez la personne sur un numéro que vous connaissez déjà.",
-        fichier: "deepfake-directeur.mp3"
-      });
-      answers = ["Faire le virement tout de suite", "Rappeler le directeur sur son numéro habituel", "Répondre au message vocal pour confirmer"];
-      correct = 1;
-      renderAnswers();
-    });
-
-    /* ---- Validation et enregistrement ---- */
-    function collect() {
-      return {
-        id: editing ? editing.id : uid("q"),
-        parcours: parcoursId,
-        format: $("#format").value,
-        notion: $("#notion").value,
-        titre: $("#titre").value.trim(),
-        situation: $("#situation").value.trim(),
-        fichier: $("#file-name").textContent === "Choisir un fichier" ? "" : $("#file-name").textContent,
-        reponses: answers.map(a => a.trim()),
-        correct,
-        explication: $("#explication").value.trim(),
-        statut: editing ? editing.statut : "brouillon"
-      };
-    }
-
-    function validate(q, full) {
-      const checks = {
-        "f-titre": !!q.titre,
-        "f-situation": !full || !!q.situation,
-        "f-reponses": !full || (q.reponses.filter(Boolean).length >= 2 && !!q.reponses[q.correct]),
-        "f-explication": !full || !!q.explication
-      };
-      Object.entries(checks).forEach(([id, ok]) => $("#" + id).classList.toggle("has-error", !ok));
-      const ok = Object.values(checks).every(Boolean);
-      $("#form-error").hidden = ok;
-      if (!ok) {
-        $("#form-error").innerHTML = icon("alert", 18) + "<span>Certains champs sont à compléter avant de continuer.</span>";
-        $("#form-error").scrollIntoView({ behavior: "smooth", block: "center" });
+      function fill(q) {
+        $("#format").value = q.format || "Mail";
+        $("#notion").value = q.notion || DATA.notionsList[0];
+        $("#titre").value = q.titre || "";
+        $("#situation").value = q.situation || "";
+        $("#explication").value = q.explication || "";
+        if (q.fichier) { $("#file-name").textContent = q.fichier; $("#file-info").textContent = "Fichier joint · cliquez pour remplacer"; }
       }
-      return ok;
-    }
+      if (editing) fill(editing);
+      else if (parcoursId === "ia") { $("#format").value = "Message vocal"; $("#notion").value = "Deepfakes vocaux"; }
 
-    function clean(q) {
-      const kept = q.reponses.map((r, i) => ({ r, i })).filter(x => x.r);
-      return { ...q, reponses: kept.map(x => x.r), correct: Math.max(0, kept.findIndex(x => x.i === q.correct)) };
-    }
+      function renderAnswers() {
+        $("#answers").innerHTML = answers.map((a, i) => `
+          <div class="answer ${i === correct ? "is-correct" : ""}">
+            <input type="radio" name="correct" value="${i}" ${i === correct ? "checked" : ""} aria-label="Bonne réponse : réponse ${i + 1}">
+            <input type="text" value="${esc(a)}" data-i="${i}" placeholder="Réponse ${i + 1}" aria-label="Réponse ${i + 1}">
+            ${i === correct ? '<span class="tag tag--green" style="background:#fff">Bonne réponse</span>' : ""}
+            ${answers.length > 2 ? `<button type="button" class="square-btn" style="border:0;background:transparent" data-remove="${i}" aria-label="Supprimer la réponse ${i + 1}">${icon("x", 16)}</button>` : ""}
+          </div>`).join("");
+        $$('#answers input[type="text"]').forEach(inp => inp.addEventListener("input", () => { answers[+inp.dataset.i] = inp.value; }));
+        $$('#answers input[type="radio"]').forEach(r => r.addEventListener("change", () => { correct = +r.value; renderAnswers(); }));
+        $$("[data-remove]").forEach(b => b.addEventListener("click", () => {
+          const i = +b.dataset.remove;
+          answers.splice(i, 1);
+          if (correct === i) correct = 0; else if (correct > i) correct--;
+          renderAnswers();
+        }));
+        $("#add-answer").hidden = answers.length >= 5;
+      }
+      renderAnswers();
+      $("#add-answer").addEventListener("click", () => { answers.push(""); renderAnswers(); $$('#answers input[type="text"]').pop().focus(); });
 
-    $("#save-draft").addEventListener("click", () => {
-      const q = collect();
-      if (!validate(q, false)) return;
-      Questions.upsert(clean({ ...q, statut: "brouillon" }));
-      flash(`Brouillon « ${esc(q.titre)} » enregistré. Il n'est pas visible par les employés.`);
-      location.href = "admin.html?parcours=" + parcoursId;
-    });
+      $("#file").addEventListener("change", e => {
+        const f = e.target.files[0];
+        if (!f) return;
+        $("#file-name").textContent = f.name;
+        $("#file-info").textContent = `${Math.max(1, Math.round(f.size / 1024))} Ko · cliquez pour remplacer`;
+      });
 
-    $("#preview").addEventListener("click", () => {
-      const q = collect();
-      if (!validate(q, true)) return;
-      Questions.upsert(clean(q));
-      location.href = "admin-apercu.html?id=" + q.id;
+      $("#fill-demo").addEventListener("click", () => {
+        fill({
+          format: "Message vocal", notion: "Deepfakes vocaux",
+          titre: "Message vocal de votre directeur",
+          situation: "« Bonjour, c'est Marc. Je suis en rendez-vous, j'ai besoin que tu fasses un virement de 8 400 € au nouveau fournisseur avant midi. Je t'envoie le RIB par mail. Merci, c'est urgent. »",
+          explication: "Une voix peut être imitée par l'IA à partir de quelques secondes d'enregistrement. Pour toute demande d'argent inhabituelle, rappelez la personne sur un numéro que vous connaissez déjà.",
+          fichier: "deepfake-directeur.mp3"
+        });
+        answers = ["Faire le virement tout de suite", "Rappeler le directeur sur son numéro habituel", "Répondre au message vocal pour confirmer"];
+        correct = 1;
+        renderAnswers();
+      });
+
+      /* ---- Validation et enregistrement ---- */
+      function collect() {
+        return {
+          id: editing ? editing.id : uid("q"),
+          parcours: parcoursId,
+          format: $("#format").value,
+          notion: $("#notion").value,
+          titre: $("#titre").value.trim(),
+          situation: $("#situation").value.trim(),
+          fichier: $("#file-name").textContent === "Choisir un fichier" ? "" : $("#file-name").textContent,
+          reponses: answers.map(a => a.trim()),
+          correct,
+          explication: $("#explication").value.trim(),
+          statut: editing ? editing.statut : "brouillon"
+        };
+      }
+
+      function validate(q, full) {
+        const checks = {
+          "f-titre": !!q.titre,
+          "f-situation": !full || !!q.situation,
+          "f-reponses": !full || (q.reponses.filter(Boolean).length >= 2 && !!q.reponses[q.correct]),
+          "f-explication": !full || !!q.explication
+        };
+        Object.entries(checks).forEach(([id, ok]) => $("#" + id).classList.toggle("has-error", !ok));
+        const ok = Object.values(checks).every(Boolean);
+        $("#form-error").hidden = ok;
+        if (!ok) {
+          $("#form-error").innerHTML = icon("alert", 18) + "<span>Certains champs sont à compléter avant de continuer.</span>";
+          $("#form-error").scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return ok;
+      }
+
+      function clean(q) {
+        const kept = q.reponses.map((r, i) => ({ r, i })).filter(x => x.r);
+        return { ...q, reponses: kept.map(x => x.r), correct: Math.max(0, kept.findIndex(x => x.i === q.correct)) };
+      }
+
+      $("#save-draft").addEventListener("click", async () => {
+        const q = collect();
+        if (!validate(q, false)) return;
+        try { await Questions.upsert(clean({ ...q, statut: "brouillon" })); } catch (e) { saveError(e); return; }
+        flash(`Brouillon « ${esc(q.titre)} » enregistré. Il n'est pas visible par les employés.`);
+        location.href = "admin.html?parcours=" + parcoursId;
+      });
+
+      $("#preview").addEventListener("click", async () => {
+        const q = collect();
+        if (!validate(q, true)) return;
+        try { await Questions.upsert(clean(q)); } catch (e) { saveError(e); return; }
+        location.href = "admin-apercu.html?id=" + q.id;
+      });
     });
   </script>
 </body>
