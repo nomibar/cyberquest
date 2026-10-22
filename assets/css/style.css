@@ -50,6 +50,7 @@ button { font: inherit; color: inherit; cursor: pointer; border: 0; background: 
 input, select, textarea { font: inherit; color: inherit; }
 img { display: block; max-width: 100%; }
 svg { flex-shrink: 0; }
+[hidden] { display: none !important; }
 
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
