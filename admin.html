@@ -17,7 +17,8 @@
     .side a.is-active { background: var(--indigo-light); }
     .side a.is-active strong { color: var(--indigo); }
     .actions { display: flex; gap: 8px; justify-content: flex-end; }
-    @media (max-width: 900px) { .admin { grid-template-columns: 1fr; } }
+    @media (max-width: 900px) { .admin { grid-template-columns: minmax(0, 1fr); } }
+    @media (max-width: 760px) { .table--stack .actions { justify-content: flex-start; } }
   </style>
 </head>
 <body>
@@ -84,14 +85,14 @@
             <a class="btn btn--primary" href="admin-question.html?parcours=${current}">${icon("plus", 18)} Ajouter une question</a>
           </div>
           <section class="card card--flush table-wrap">
-            <table class="table">
+            <table class="table table--stack">
               <thead><tr><th>Question</th><th>Format</th><th>Statut</th><th style="text-align:right">Actions</th></tr></thead>
               <tbody>
                 ${qs.length ? qs.map(q => `
                   <tr class="${q.id === highlight ? "is-new" : ""}">
                     <td style="font-weight:600">${esc(q.titre)}</td>
-                    <td class="muted"><span class="row" style="gap:8px">${icon(FORMAT_ICONS[q.format] || "file", 16)}${esc(q.format)}</span></td>
-                    <td>${q.statut === "publie"
+                    <td class="muted td-inline"><span class="row" style="gap:8px">${icon(FORMAT_ICONS[q.format] || "file", 16)}${esc(q.format)}</span></td>
+                    <td class="td-inline">${q.statut === "publie"
                       ? `<span class="tag tag--green">${q.id === highlight ? "Publié · nouveau" : "Publié"}</span>`
                       : '<span class="tag tag--orange">Brouillon</span>'}</td>
                     <td><div class="actions">

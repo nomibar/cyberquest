@@ -44,6 +44,7 @@
     .tooltip { display: inline-block; padding: 8px 12px; border-radius: 8px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 500; }
 
     /* Choix */
+    #stage:focus { outline: none; }
     .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .choice { display: flex; flex-direction: column; gap: 8px; padding: 20px; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; text-align: left; color: var(--indigo); }
     .choice:hover { border-color: var(--indigo); box-shadow: 0 0 0 3px var(--indigo-light); }
@@ -83,7 +84,7 @@
     </div>
   </header>
 
-  <main id="stage" class="stage" aria-live="polite"></main>
+  <main id="stage" class="stage" aria-live="polite" tabindex="-1"></main>
 
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
@@ -266,6 +267,8 @@
         const s = G.situations[state.index];
         $("#stage").innerHTML = VIEWS[state.step](s);
         window.scrollTo({ top: 0 });
+        /* Le focus revient au début du nouveau contenu : Tab mène directement aux choix */
+        $("#stage").focus({ preventScroll: true });
 
         $$("[data-choice]").forEach(b => b.addEventListener("click", () => choose(s.choices[+b.dataset.choice].correct)));
         $$('[data-action="cta"]:not([disabled]), [data-action="attachment"]:not([disabled])').forEach(b => b.addEventListener("click", () => choose(false)));

@@ -243,8 +243,16 @@ function renderHeader(active) {
     const dot = $(".dot", nb); if (dot) dot.remove();
   });
   toggle(pb, pm, nm);
-  document.addEventListener("click", e => {
-    if (!e.target.closest(".dropdown")) { nm.classList.remove("is-open"); pm.classList.remove("is-open"); }
+  const closeMenus = () => {
+    nm.classList.remove("is-open"); pm.classList.remove("is-open");
+    nb.setAttribute("aria-expanded", false); pb.setAttribute("aria-expanded", false);
+  };
+  document.addEventListener("click", e => { if (!e.target.closest(".dropdown")) closeMenus(); });
+  /* Échap ferme le menu ouvert et rend le focus à son bouton */
+  document.addEventListener("keydown", e => {
+    if (e.key !== "Escape") return;
+    const opener = nm.classList.contains("is-open") ? nb : pm.classList.contains("is-open") ? pb : null;
+    if (opener) { closeMenus(); opener.focus(); }
   });
   $("#logout-btn").addEventListener("click", async () => { await Session.logout(); location.href = "index.html"; });
   $("#switch-btn").addEventListener("click", async () => { await Session.logout(); location.href = "connexion.html"; });
@@ -275,11 +283,25 @@ function showFlash() {
 }
 
 /* ---------- Modale ---------- */
+/* Éléments atteignables au clavier dans la modale */
+const focusablesIn = root => $$('a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])', root)
+  .filter(el => el.offsetParent !== null || el.type === "radio");
+
 function openModal(overlay) {
+  overlay._opener = document.activeElement;
   overlay.hidden = false;
   const focusable = overlay.querySelector("input, select, button");
   if (focusable) focusable.focus();
-  const onKey = e => { if (e.key === "Escape") closeModal(overlay); };
+  /* Échap ferme ; Tab reste dans la modale */
+  const onKey = e => {
+    if (e.key === "Escape") { closeModal(overlay); return; }
+    if (e.key !== "Tab") return;
+    const items = focusablesIn(overlay);
+    if (!items.length) return;
+    const first = items[0], last = items[items.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
   overlay._onKey = onKey;
   document.addEventListener("keydown", onKey);
   overlay.onclick = e => { if (e.target === overlay) closeModal(overlay); };
@@ -288,6 +310,8 @@ function openModal(overlay) {
 function closeModal(overlay) {
   overlay.hidden = true;
   if (overlay._onKey) document.removeEventListener("keydown", overlay._onKey);
+  /* Rend le focus au bouton qui a ouvert la modale */
+  if (overlay._opener && document.contains(overlay._opener)) overlay._opener.focus();
 }
 
 /* ---------- Composants réutilisés ---------- */
@@ -377,7 +401,12 @@ function setupAssignModal({ onAssign }) {
         <span class="grow"><span style="font-weight:600;display:block">${z.name}</span><span class="small muted">${z.games} mini-jeux · ≈ ${z.minutes} min</span></span>
         ${ctx && ctx.suggested && ctx.suggested.includes(z.id) ? '<span class="tag tag--red">Conseillé</span>' : ""}
       </label>`).join("") : '<p class="muted small">Aucun quiz ne correspond à votre recherche.</p>';
-    $$('input[name="assign-quiz"]', overlay).forEach(r => r.addEventListener("change", () => { selected = r.value; renderList(); }));
+    /* Après un choix (clic ou flèches), la liste est redessinée : le focus reste sur le quiz choisi */
+    $$('input[name="assign-quiz"]', overlay).forEach(r => r.addEventListener("change", () => {
+      selected = r.value;
+      renderList();
+      $(`input[name="assign-quiz"][value="${selected}"]`, overlay).focus();
+    }));
   };
 
   $("#assign-search", overlay).addEventListener("input", renderList);

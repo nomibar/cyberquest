@@ -59,7 +59,7 @@
         </div>
         <div id="active-filter"></div>
         <div class="table-wrap">
-          <table class="table">
+          <table class="table table--stack">
             <thead><tr><th>Collaborateur</th><th>Avancement de la formation</th><th>Notions à revoir</th><th>Dernière activité</th><th><span class="sr-only">Action</span></th></tr></thead>
             <tbody id="rows"></tbody>
           </table>
@@ -132,8 +132,8 @@
               <td><div class="person"><span class="avatar">${p.initials}</span><div><div style="font-weight:600">${esc(p.name)}</div><div class="small muted">${esc(p.job)}</div></div></div></td>
               <td class="col-progress"><div class="small" style="font-weight:500;margin-bottom:8px">${p.done} / ${total} parcours terminés</div>${progressBar(p.done, total)}</td>
               <td><div class="tags">${tags.join("")}</div></td>
-              <td class="muted">${p.last}</td>
-              <td style="text-align:right"><a class="link" href="collaborateur.html?id=${p.id}">Voir le détail ${icon("chevronRight", 16)}</a></td>
+              <td class="muted td-inline" data-label="Dernière activité : ">${p.last}</td>
+              <td class="td-inline td-end" style="text-align:right"><a class="link" href="collaborateur.html?id=${p.id}">Voir le détail ${icon("chevronRight", 16)}</a></td>
             </tr>`;
         }).join("") : `<tr><td colspan="5" class="empty">Aucun collaborateur ne correspond à ces critères.</td></tr>`;
 
