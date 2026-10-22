@@ -1,0 +1,30 @@
+[
+  {
+    "id": "pj",
+    "name": "Pièces jointes suspectes",
+    "games": 5,
+    "minutes": 10,
+    "notion": "Pièces jointes"
+  },
+  {
+    "id": "qr",
+    "name": "Faux QR codes",
+    "games": 4,
+    "minutes": 8,
+    "notion": "Faux QR codes"
+  },
+  {
+    "id": "mdp",
+    "name": "Mots de passe",
+    "games": 4,
+    "minutes": 8,
+    "notion": "Mots de passe"
+  },
+  {
+    "id": "deepfake",
+    "name": "Deepfakes vocaux",
+    "games": 3,
+    "minutes": 6,
+    "notion": "Deepfakes"
+  }
+]

@@ -1,0 +1,238 @@
+{
+  "parcoursId": "phishing",
+  "title": "Mini-jeu · Phishing",
+  "minutesPerSituation": 3,
+  "situations": [
+    {
+      "id": "prime",
+      "subject": "URGENT – Validation de votre prime avant 12h",
+      "fromName": "Direction Générale",
+      "fromInitials": "DG",
+      "fromAddr": "direction@entreprlse-rh.com",
+      "fromHint": 1,
+      "date": "Aujourd'hui, 10:47",
+      "body": [
+        {
+          "text": "Bonjour,"
+        },
+        {
+          "text": "Suite à la réorganisation, votre prime annuelle doit être validée avant 12h aujourd'hui, sinon elle sera définitivement perdue.",
+          "hint": 2
+        }
+      ],
+      "cta": {
+        "label": "Valider ma prime",
+        "real": "http://prime-validation.co/login",
+        "hint": 3
+      },
+      "signature": {
+        "text": "Merci de ne pas en parler à vos collègues avant validation.\nCordialement,\nLa Direction",
+        "hint": 4
+      },
+      "choices": [
+        {
+          "icon": "link",
+          "label": "Cliquer sur le lien",
+          "desc": "Valider la prime tout de suite",
+          "correct": false
+        },
+        {
+          "icon": "reply",
+          "label": "Répondre au mail",
+          "desc": "Demander plus d'informations",
+          "correct": false
+        },
+        {
+          "icon": "flag",
+          "label": "Signaler le mail",
+          "desc": "Prévenir le service informatique",
+          "correct": true
+        }
+      ],
+      "hints": [
+        {
+          "title": "L'adresse de l'expéditeur",
+          "desc": "« entreprlse » contient un « l » à la place du « i ». Les pirates imitent les vraies adresses."
+        },
+        {
+          "title": "L'urgence",
+          "desc": "« Avant 12h, sinon c'est perdu » : on vous presse pour vous empêcher de réfléchir."
+        },
+        {
+          "title": "Le lien",
+          "desc": "Le texte affiché ne correspond pas à l'adresse réelle, visible en survolant le lien."
+        },
+        {
+          "title": "Le ton inhabituel",
+          "desc": "Demander de ne pas en parler aux collègues est un signal d'alerte classique."
+        }
+      ],
+      "reflexe": "Vérifiez l'expéditeur, survolez le lien sans cliquer, et en cas de doute signalez le mail au service informatique.",
+      "verif": {
+        "question": "Quel indice aurait dû vous alerter en premier ?",
+        "options": [
+          "L'adresse de l'expéditeur contient une faute (entreprlse)",
+          "Le mail est écrit en français",
+          "Le mail est arrivé le matin",
+          "Le bouton est de couleur bleue"
+        ],
+        "correct": 0,
+        "explanation": "Vérifier l'adresse de l'expéditeur est le premier réflexe : c'est le plus rapide et le plus fiable."
+      }
+    },
+    {
+      "id": "colis",
+      "subject": "Votre colis n'a pas pu être livré",
+      "fromName": "Service Livraison",
+      "fromInitials": "SL",
+      "fromAddr": "noreply@livraison-express-fr.net",
+      "fromHint": 1,
+      "date": "Aujourd'hui, 14:12",
+      "body": [
+        {
+          "text": "Cher client,",
+          "hint": 2
+        },
+        {
+          "text": "Nous n'avons pas pu livrer votre colis. Ouvrez le bon de livraison joint pour reprogrammer la livraison sous 48h."
+        }
+      ],
+      "attachment": {
+        "name": "Bon_livraison_7741.zip",
+        "size": "214 Ko",
+        "hint": 3
+      },
+      "signature": {
+        "text": "Sans action de votre part, le colis sera renvoyé à l'expéditeur.\nL'équipe Livraison",
+        "hint": 4
+      },
+      "choices": [
+        {
+          "icon": "paperclip",
+          "label": "Ouvrir la pièce jointe",
+          "desc": "Reprogrammer la livraison",
+          "correct": false
+        },
+        {
+          "icon": "reply",
+          "label": "Répondre au mail",
+          "desc": "Demander le numéro de suivi",
+          "correct": false
+        },
+        {
+          "icon": "flag",
+          "label": "Signaler le mail",
+          "desc": "Prévenir le service informatique",
+          "correct": true
+        }
+      ],
+      "hints": [
+        {
+          "title": "Un expéditeur inconnu",
+          "desc": "Une adresse « noreply » d'un transporteur que vous ne connaissez pas, sans lien avec une commande."
+        },
+        {
+          "title": "Une formule générique",
+          "desc": "« Cher client » : un vrai transporteur connaît votre nom."
+        },
+        {
+          "title": "Une pièce jointe .zip",
+          "desc": "Un bon de livraison n'est jamais un .zip. Ce type de fichier peut cacher un programme malveillant."
+        },
+        {
+          "title": "La pression",
+          "desc": "« Sans action de votre part… » : encore une fois, on vous pousse à agir vite."
+        }
+      ],
+      "reflexe": "N'ouvrez jamais une pièce jointe inattendue. Vérifiez votre commande directement sur le site du transporteur.",
+      "verif": {
+        "question": "Qu'est-ce qui rendait la pièce jointe suspecte ?",
+        "options": [
+          "Son nom contient un numéro",
+          "C'est un fichier .zip inattendu",
+          "Elle pèse 214 Ko",
+          "Elle est arrivée l'après-midi"
+        ],
+        "correct": 1,
+        "explanation": "Un fichier compressé (.zip) reçu sans l'avoir demandé est un des moyens les plus courants de diffuser un virus."
+      }
+    },
+    {
+      "id": "mdp",
+      "subject": "Votre mot de passe expire dans 24h",
+      "fromName": "Support Informatique",
+      "fromInitials": "SI",
+      "fromAddr": "support@entreprise-helpdesk.com",
+      "fromHint": 1,
+      "date": "Hier, 17:30",
+      "body": [
+        {
+          "text": "Bonjour,"
+        },
+        {
+          "text": "Votre mot de passe expire dans 24h. Pour garder l'accès à votre messagerie, confirmez votre mot de passe actuel sur la page sécurisée.",
+          "hint": 2
+        }
+      ],
+      "cta": {
+        "label": "Conserver mon mot de passe",
+        "real": "http://securite-compte365.info/verif",
+        "hint": 3
+      },
+      "signature": {
+        "text": "Le Support Informatique\nCe message est automatique, merci de ne pas y répondre.",
+        "hint": 4
+      },
+      "choices": [
+        {
+          "icon": "link",
+          "label": "Cliquer sur le lien",
+          "desc": "Confirmer mon mot de passe",
+          "correct": false
+        },
+        {
+          "icon": "reply",
+          "label": "Répondre au mail",
+          "desc": "Envoyer mon mot de passe au support",
+          "correct": false
+        },
+        {
+          "icon": "flag",
+          "label": "Signaler le mail",
+          "desc": "Prévenir le service informatique",
+          "correct": true
+        }
+      ],
+      "hints": [
+        {
+          "title": "Un faux domaine",
+          "desc": "« entreprise-helpdesk.com » n'est pas l'adresse habituelle de votre entreprise."
+        },
+        {
+          "title": "La demande du mot de passe",
+          "desc": "Le service informatique ne vous demande jamais votre mot de passe, ni par mail ni par téléphone."
+        },
+        {
+          "title": "Le lien",
+          "desc": "L'adresse réelle mène vers un site externe sans rapport avec votre entreprise."
+        },
+        {
+          "title": "Impossible de vérifier",
+          "desc": "« Merci de ne pas répondre » vous empêche de poser la question au vrai support."
+        }
+      ],
+      "reflexe": "En cas de doute, contactez le service informatique par un moyen que vous connaissez déjà (téléphone interne, intranet).",
+      "verif": {
+        "question": "Que ne vous demandera jamais le service informatique ?",
+        "options": [
+          "De redémarrer votre ordinateur",
+          "D'installer une mise à jour",
+          "De lui communiquer votre mot de passe",
+          "De signaler un mail suspect"
+        ],
+        "correct": 2,
+        "explanation": "Votre mot de passe est personnel : personne, pas même le support, n'a besoin de le connaître."
+      }
+    }
+  ]
+}

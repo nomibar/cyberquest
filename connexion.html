@@ -24,43 +24,33 @@
     <div class="card login">
       <a href="index.html"><img src="assets/img/logo.png" alt="CyberQuests – retour à l'accueil"></a>
       <div>
-        <h1 style="font-size:28px" id="title">Connexion</h1>
-        <p class="muted" id="subtitle">Utilisez vos identifiants d'entreprise.</p>
+        <h1 style="font-size:28px">Connexion</h1>
+        <p class="muted">Utilisez vos identifiants d'entreprise.</p>
       </div>
 
       <div class="alert alert--error" id="login-error" role="alert" hidden></div>
       <div class="alert alert--info" id="login-info" role="status" hidden></div>
 
       <form id="login-form" class="stack" style="gap:16px" novalidate>
-        <div class="field" id="name-field" hidden>
-          <label class="field__label" for="name">Prénom et nom</label>
-          <div class="input"><span aria-hidden="true" data-icon="user"></span><input id="name" type="text" autocomplete="name" placeholder="Camille Bernard"></div>
-        </div>
-        <div class="field" id="email-field">
+        <div class="field">
           <label class="field__label" for="email">Email professionnel</label>
           <div class="input" id="email-box"><span aria-hidden="true" data-icon="mail"></span><input id="email" type="email" autocomplete="username" placeholder="prenom.nom@entreprise.fr" required></div>
         </div>
         <div class="field">
-          <label class="field__label" for="password" id="password-label">Mot de passe</label>
+          <label class="field__label" for="password">Mot de passe</label>
           <div class="input" id="password-box"><span aria-hidden="true" data-icon="lock"></span><input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required></div>
         </div>
         <a href="#" class="link" id="forgot" style="align-self:flex-start">Mot de passe oublié ?</a>
         <button class="btn btn--primary btn--block" type="submit" id="submit">Se connecter</button>
       </form>
 
-      <p class="small" style="text-align:center" id="switch-mode"></p>
-
-      <div id="demo-block" class="stack" style="gap:20px">
-        <div class="divider">ou, pour la démonstration</div>
-        <div class="demo" id="demo-accounts"></div>
-      </div>
+      <div class="divider">ou, pour la démonstration</div>
+      <div class="demo" id="demo-accounts"></div>
 
       <p class="small muted" style="text-align:center">Vos données servent uniquement à suivre votre formation.</p>
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-  <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/db.js"></script>
@@ -69,118 +59,41 @@
 
     const errorBox = $("#login-error");
     const infoBox = $("#login-info");
-    const pageUrl = location.origin + location.pathname;
-    let mode = "login"; // login | signup | reset
 
-    const showInfo = html => { errorBox.hidden = true; infoBox.hidden = false; infoBox.innerHTML = html; };
+    if (param("refus")) {
+      infoBox.hidden = false;
+      infoBox.innerHTML = icon("info", 18) + "<span>Cette page n'est pas accessible avec ce compte. Connectez-vous avec un autre rôle.</span>";
+    }
+
     const showError = msg => {
-      infoBox.hidden = true;
       errorBox.hidden = false;
       errorBox.innerHTML = icon("alert", 18) + `<span>${msg}</span>`;
       $("#password-box").classList.add("input--error");
     };
 
-    /* ---- Trois écrans dans un seul formulaire ---- */
-    const MODES = {
-      login: { title: "Connexion", subtitle: "Utilisez vos identifiants d'entreprise.", password: "Mot de passe", submit: "Se connecter", autocomplete: "current-password" },
-      signup: { title: "Créer un compte", subtitle: "Votre compte sera créé avec le rôle « Employé ».", password: "Mot de passe (6 caractères minimum)", submit: "Créer mon compte", autocomplete: "new-password" },
-      reset: { title: "Nouveau mot de passe", subtitle: "Choisissez votre nouveau mot de passe.", password: "Nouveau mot de passe (6 caractères minimum)", submit: "Enregistrer le mot de passe", autocomplete: "new-password" }
-    };
-
-    function setMode(m) {
-      mode = m;
-      const t = MODES[m];
-      $("#title").textContent = t.title;
-      $("#subtitle").textContent = t.subtitle;
-      $("#password-label").textContent = t.password;
-      $("#submit").textContent = t.submit;
-      $("#password").autocomplete = t.autocomplete;
-      $("#password-box").classList.remove("input--error");
-      $("#name-field").hidden = m !== "signup";
-      $("#email-field").hidden = m === "reset";
-      $("#forgot").hidden = m !== "login";
-      $("#demo-block").hidden = m !== "login";
-      $("#switch-mode").hidden = m === "reset";
-      $("#switch-mode").innerHTML = m === "login"
-        ? '<span class="muted">Pas encore de compte ?</span> <a href="#" class="link">Créer un compte</a>'
-        : '<span class="muted">Déjà un compte ?</span> <a href="#" class="link">Se connecter</a>';
-      $("#switch-mode a").addEventListener("click", e => {
-        e.preventDefault();
-        errorBox.hidden = infoBox.hidden = true;
-        setMode(mode === "login" ? "signup" : "login");
-      });
-    }
-    setMode("login");
-
-    if (param("refus")) showInfo(icon("info", 18) + "<span>Cette page n'est pas accessible avec ce compte. Connectez-vous avec un autre rôle.</span>");
-
-    async function goHome(userId) {
-      const profile = await rows(sb.from("profiles").select("role").eq("id", userId).single());
-      location.href = homeFor(profile.role);
-    }
-
-    const MESSAGES = {
-      "Invalid login credentials": "Email ou mot de passe incorrect. Vérifiez vos identifiants ou réinitialisez votre mot de passe.",
-      "Email not confirmed": "Votre adresse n'est pas encore confirmée : cliquez sur le lien reçu par mail.",
-      "User already registered": "Un compte existe déjà avec cet email. Connectez-vous ou réinitialisez votre mot de passe."
-    };
-    const message = error => MESSAGES[error.message]
-      || (/password/i.test(error.message) ? "Le mot de passe doit contenir au moins 6 caractères." : "Une erreur est survenue : " + esc(error.message));
-
     async function login(email, password) {
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) { showError(message(error)); return; }
-      await goHome(data.user.id);
+      let user;
+      try { user = await Auth.login(email, password); }
+      catch (e) { showError("Impossible de charger les comptes. Ouvrez le site via un serveur (voir README)."); return; }
+      if (!user) { showError("Email ou mot de passe incorrect. Vérifiez vos identifiants ou réinitialisez votre mot de passe."); return; }
+      location.href = homeFor(user.role);
     }
 
-    async function submit() {
-      const name = $("#name").value.trim();
-      const email = $("#email").value.trim().toLowerCase();
-      const password = $("#password").value;
-
-      if (mode === "reset") {
-        if (password.length < 6) { showError("Le mot de passe doit contenir au moins 6 caractères."); return; }
-        const { data, error } = await sb.auth.updateUser({ password });
-        if (error) { showError(message(error)); return; }
-        await goHome(data.user.id);
-        return;
-      }
-      if (mode === "login") {
-        if (!email || !password) { showError("Renseignez votre email et votre mot de passe."); return; }
-        await login(email, password);
-        return;
-      }
-      if (!name || !email || !password) { showError("Renseignez votre nom, votre email et un mot de passe."); return; }
-      const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: name }, emailRedirectTo: pageUrl } });
-      if (error) { showError(message(error)); return; }
-      if (data.session) { await goHome(data.user.id); return; }
-      setMode("login");
-      showInfo(icon("mail", 18) + `<span>Compte créé ! Un mail de confirmation a été envoyé à <strong>${esc(email)}</strong>. Cliquez sur le lien qu'il contient, puis connectez-vous.</span>`);
-    }
-
-    $("#login-form").addEventListener("submit", async e => {
+    $("#login-form").addEventListener("submit", e => {
       e.preventDefault();
       infoBox.hidden = true;
       $("#password-box").classList.remove("input--error");
-      $("#submit").disabled = true;
-      try { await submit(); }
-      catch (err) { showError("Une erreur est survenue : " + esc(err.message || err)); }
-      finally { $("#submit").disabled = false; }
-    });
-
-    $("#forgot").addEventListener("click", async e => {
-      e.preventDefault();
       const email = $("#email").value.trim().toLowerCase();
-      if (!email) { showError("Saisissez d'abord votre email, puis cliquez sur « Mot de passe oublié ? »."); return; }
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: pageUrl });
-      if (error) { showError(message(error)); return; }
-      showInfo(icon("mail", 18) + `<span>Si un compte existe pour <strong>${esc(email)}</strong>, un lien de réinitialisation vient d'être envoyé par mail.</span>`);
+      const pwd = $("#password").value;
+      if (!email || !pwd) { showError("Renseignez votre email et votre mot de passe."); return; }
+      login(email, pwd);
     });
 
-    /* Retour depuis un mail : confirmation d'inscription ou réinitialisation du mot de passe */
-    sb.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY") setMode("reset");
-      else if (event === "SIGNED_IN" && session && /type=(signup|invite)/.test(location.hash)) goHome(session.user.id);
+    $("#forgot").addEventListener("click", e => {
+      e.preventDefault();
+      errorBox.hidden = true;
+      infoBox.hidden = false;
+      infoBox.innerHTML = icon("mail", 18) + "<span>Dans la version réelle, un lien de réinitialisation serait envoyé par mail. Pour la démo, le mot de passe est <strong>demo</strong>.</span>";
     });
 
     $("#demo-accounts").innerHTML = DATA.demoAccounts.map(u => `

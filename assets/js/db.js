@@ -1,18 +1,19 @@
 /* =========================================================
-   CyberQuest – accès à la base Supabase
-   (client, chargement des données, démarrage des pages)
+   CyberQuest – accès aux données
+   Le contenu est lu dans data/*.json ; les actions (connexion,
+   progression, quiz assignés, questions modifiées) sont
+   enregistrées dans le navigateur (localStorage).
    ========================================================= */
 
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/* Résultat d'une requête Supabase, ou exception en cas d'erreur */
-async function rows(request) {
-  const { data, error } = await request;
-  if (error) throw error;
-  return data;
+async function loadJSON(name) {
+  const res = await fetch(`data/${name}.json`);
+  if (!res.ok) throw new Error(`data/${name}.json introuvable (${res.status})`);
+  return res.json();
 }
 
 /* ---------- Mise en forme ---------- */
+const daysAgo = n => new Date(Date.now() - n * 86400000).toISOString();
+
 function initialsOf(name) {
   return String(name || "?").split(/[\s.-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
 }
@@ -35,87 +36,67 @@ function lastSeenLabel(iso) {
   return weeks === 1 ? "Il y a 1 semaine" : `Il y a ${weeks} semaines`;
 }
 
-/* ---------- Conversion des lignes de la base ---------- */
-function toUser(p) {
-  return {
-    id: p.id, role: p.role, name: p.full_name, initials: initialsOf(p.full_name),
-    email: p.email, job: p.job, service: p.service, managerId: p.manager_id
-  };
-}
-
-function toAssignment(a) {
-  return { id: a.id, group: a.group_id, personId: a.user_id, quizId: a.quiz_id, due: a.due || "", notify: a.notify, date: dateLabel(a.created_at) };
-}
-
-function toQuestion(q) {
-  return {
-    id: q.id, parcours: q.parcours_id, titre: q.titre, format: q.format, notion: q.notion || undefined,
-    situation: q.situation || undefined, fichier: q.fichier || undefined,
-    reponses: q.reponses || undefined, correct: q.correct, explication: q.explication || undefined, statut: q.statut
-  };
-}
-
-function fromQuestion(q) {
-  return {
-    id: q.id, parcours_id: q.parcours, titre: q.titre, format: q.format, notion: q.notion || null,
-    situation: q.situation || null, fichier: q.fichier || null,
-    reponses: q.reponses && q.reponses.length ? q.reponses : null, correct: q.correct || 0,
-    explication: q.explication || null, statut: q.statut
-  };
-}
-
-/* ---------- Chargement ----------
-   Les règles RLS limitent ce que chacun reçoit : un employé ne voit
-   que lui-même, un manager son équipe, l'admin tout le monde.        */
-const LOADERS = {
-  async themes() {
-    const [themes, quizzes] = await Promise.all([
-      rows(sb.from("themes").select("*").order("position")),
-      rows(sb.from("theme_quizzes").select("*").order("position"))
-    ]);
-    DATA.themes = themes.map(t => ({
-      id: t.id, name: t.name, icon: t.icon,
-      quizzes: quizzes.filter(z => z.theme_id === t.id).map(z => ({ title: z.title, questions: z.question_count, level: z.level }))
-    }));
+/* ---------- Progression enregistrée dans le navigateur ---------- */
+const Progress = {
+  completions(userId) { return Store.get("cq_completions_" + userId, {}); },
+  complete(userId, parcoursId) {
+    const done = this.completions(userId);
+    if (!done[parcoursId]) done[parcoursId] = new Date().toISOString();
+    Store.set("cq_completions_" + userId, done);
   },
-  async game() {
-    const list = await rows(sb.from("game_situations").select("*").eq("parcours_id", DATA.gameInfo.parcoursId).order("position"));
-    DATA.game = { ...DATA.gameInfo, situations: list.map(s => ({ id: s.id, ...s.content })) };
-  },
-  async history() {
-    const list = await rows(sb.from("game_results").select("*").eq("user_id", Session.user().id).order("played_at"));
-    DATA.history = list.map(h => ({ date: dateLabel(h.played_at), firstTry: h.first_try, total: h.total }));
-  },
-  async questions() {
-    Questions.list = (await rows(sb.from("questions").select("*").order("seq"))).map(toQuestion);
+  history(userId) { return Store.get("cq_history_" + userId, []); },
+  addResult(userId, result) {
+    Store.set("cq_history_" + userId, [...this.history(userId), { date: new Date().toISOString(), ...result }]);
   }
 };
 
-async function loadData(user, extra) {
-  const [profiles, parcours, library, completions, notions, assignments] = await Promise.all([
-    rows(sb.from("profiles").select("*")),
-    rows(sb.from("parcours").select("*").order("position")),
-    rows(sb.from("quiz_library").select("*").order("position")),
-    rows(sb.from("parcours_completions").select("*")),
-    rows(sb.from("weak_notions").select("*")),
-    rows(sb.from("assignments").select("*").order("created_at")),
+/* Personne de data/people.json, complétée par ce qui a été joué dans ce navigateur */
+function toPerson(p) {
+  const completed = {};
+  Object.entries(p.completedDaysAgo).forEach(([id, n]) => { completed[id] = daysAgo(n); });
+  /* Un parcours rejoué garde sa première date de fin */
+  Object.entries(Progress.completions(p.id)).forEach(([id, date]) => { if (!completed[id]) completed[id] = date; });
+  const lastSeen = Store.get("cq_last_seen_" + p.id, null) || (p.lastSeenDaysAgo === null ? null : daysAgo(p.lastSeenDaysAgo));
+  return {
+    id: p.id, role: p.role, name: p.name, initials: initialsOf(p.name), email: p.email,
+    job: p.job, service: p.service, managerId: p.managerId,
+    completed, notions: p.notions, last: lastSeenLabel(lastSeen)
+  };
+}
+
+/* ---------- Connexion de démonstration ---------- */
+const Auth = {
+  async login(email, password) {
+    const people = await loadJSON("people");
+    const p = people.find(x => x.email === email);
+    if (!p || password !== DATA.demoPassword) return null;
+    Store.set("cq_session", p.id);
+    return p;
+  },
+  logout() { Store.remove("cq_session"); }
+};
+
+/* ---------- Chargement ---------- */
+const LOADERS = {
+  async themes() { DATA.themes = await loadJSON("themes"); },
+  async game() { DATA.game = await loadJSON("game"); },
+  async history() {
+    DATA.history = Progress.history(Session.user().id).map(h => ({ date: dateLabel(h.date), firstTry: h.firstTry, total: h.total }));
+  },
+  async questions() { Questions.list = Store.get("cq_questions", null) || await loadJSON("questions"); }
+};
+
+async function loadData(user, people, extra) {
+  const [parcours, library] = await Promise.all([
+    loadJSON("parcours"),
+    loadJSON("quiz-library"),
     ...extra.map(name => LOADERS[name]())
   ]);
+  DATA.parcours = parcours;
+  DATA.quizLibrary = library;
+  Assignments.list = Store.get("cq_assignments", []);
 
-  DATA.parcours = parcours.map(p => ({ id: p.id, name: p.name, games: p.games }));
-  DATA.quizLibrary = library.map(z => ({ id: z.id, name: z.name, games: z.games, minutes: z.minutes, notion: z.notion }));
-  Assignments.list = assignments.map(toAssignment);
-
-  DATA.people = profiles.map(p => {
-    const completed = {};
-    completions.filter(c => c.user_id === p.id).forEach(c => { completed[c.parcours_id] = c.completed_at; });
-    return {
-      ...toUser(p), completed,
-      done: DATA.parcours.filter(x => completed[x.id]).length,
-      notions: notions.filter(n => n.user_id === p.id).map(n => n.quiz_id),
-      last: lastSeenLabel(p.last_seen_at)
-    };
-  });
+  DATA.people = people.map(p => ({ ...p, done: DATA.parcours.filter(x => p.completed[x.id]).length }));
   DATA.me = DATA.people.find(p => p.id === user.id);
   DATA.team = DATA.people
     .filter(p => p.id !== user.id && (user.role === "admin" || p.managerId === user.id));
@@ -133,27 +114,28 @@ async function loadData(user, extra) {
    extra : données en plus à charger (voir LOADERS)              */
 async function boot(roles, page, extra = []) {
   try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) { location.replace("connexion.html"); return; }
-    const profile = await rows(sb.from("profiles").select("*").eq("id", session.user.id).single());
-    const user = toUser(profile);
+    const id = Store.get("cq_session", null);
+    if (!id) { location.replace("connexion.html"); return; }
+    const people = (await loadJSON("people")).map(toPerson);
+    const user = people.find(p => p.id === id);
+    if (!user) { Auth.logout(); location.replace("connexion.html"); return; }
     if (roles && !roles.includes(user.role)) { location.replace("connexion.html?refus=1"); return; }
     Session.current = user;
+    Store.set("cq_last_seen_" + user.id, new Date().toISOString());
 
     if (user.role === "admin" && !extra.includes("questions")) extra = [...extra, "questions"];
-    await loadData(user, extra);
-    sb.from("profiles").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id).then(() => {});
+    await loadData(user, people, extra);
 
     await page(user);
   } catch (e) {
     console.error(e);
     const main = $("main") || document.body;
-    main.insertAdjacentHTML("afterbegin", `<div class="alert alert--error" role="alert" style="margin:24px">${icon("alert", 18)}<span>Impossible de charger les données. Vérifiez votre connexion puis rechargez la page. <span class="small">(${esc(e.message || e)})</span></span></div>`);
+    main.insertAdjacentHTML("afterbegin", `<div class="alert alert--error" role="alert" style="margin:24px">${icon("alert", 18)}<span>Impossible de charger les données. Ouvrez le site via un serveur (voir README) puis rechargez la page. <span class="small">(${esc(e.message || e)})</span></span></div>`);
   }
 }
 
 /* Erreur lors d'un enregistrement : message à l'utilisateur */
 function saveError(e) {
   console.error(e);
-  toast("L'enregistrement a échoué. Vérifiez votre connexion et réessayez.");
+  toast("L'enregistrement a échoué. Réessayez.");
 }

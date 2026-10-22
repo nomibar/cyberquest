@@ -1,0 +1,163 @@
+[
+  {
+    "id": "sl",
+    "name": "Sophie Leroy",
+    "email": "sophie.leroy@entreprise.fr",
+    "job": "Service RH",
+    "role": "admin",
+    "service": "Ressources humaines",
+    "managerId": null,
+    "completedDaysAgo": {},
+    "notions": [],
+    "lastSeenDaysAgo": 0
+  },
+  {
+    "id": "md",
+    "name": "Marc Durand",
+    "email": "marc.durand@entreprise.fr",
+    "job": "Responsable du service commercial",
+    "role": "manager",
+    "service": "Service commercial",
+    "managerId": null,
+    "completedDaysAgo": {},
+    "notions": [],
+    "lastSeenDaysAgo": 0
+  },
+  {
+    "id": "cb",
+    "name": "Camille Bernard",
+    "email": "camille.bernard@entreprise.fr",
+    "job": "Assistante commerciale",
+    "role": "joueur",
+    "service": "Service commercial",
+    "managerId": "md",
+    "completedDaysAgo": {
+      "phishing": 14,
+      "mdp": 10,
+      "pj": 7
+    },
+    "notions": [
+      "pj"
+    ],
+    "lastSeenDaysAgo": 0
+  },
+  {
+    "id": "hd",
+    "name": "Hugo Dubois",
+    "email": "hugo.dubois@entreprise.fr",
+    "job": "Commercial terrain",
+    "role": "joueur",
+    "service": "Service commercial",
+    "managerId": "md",
+    "completedDaysAgo": {
+      "phishing": 14,
+      "mdp": 10
+    },
+    "notions": [
+      "pj",
+      "qr"
+    ],
+    "lastSeenDaysAgo": 2
+  },
+  {
+    "id": "if",
+    "name": "Inès Fontaine",
+    "email": "ines.fontaine@entreprise.fr",
+    "job": "Assistante commerciale",
+    "role": "joueur",
+    "service": "Service commercial",
+    "managerId": "md",
+    "completedDaysAgo": {
+      "phishing": 14,
+      "mdp": 10,
+      "pj": 7,
+      "qr": 4,
+      "ia": 2
+    },
+    "notions": [],
+    "lastSeenDaysAgo": 1
+  },
+  {
+    "id": "jg",
+    "name": "Julien Garnier",
+    "email": "julien.garnier@entreprise.fr",
+    "job": "Chargé de clientèle",
+    "role": "joueur",
+    "service": "Service commercial",
+    "managerId": "md",
+    "completedDaysAgo": {
+      "phishing": 14,
+      "mdp": 10,
+      "pj": 7
+    },
+    "notions": [
+      "qr"
+    ],
+    "lastSeenDaysAgo": 5
+  },
+  {
+    "id": "lm",
+    "name": "Léa Martin",
+    "email": "lea.martin@entreprise.fr",
+    "job": "Assistante commerciale",
+    "role": "joueur",
+    "service": "Service commercial",
+    "managerId": "md",
+    "completedDaysAgo": {
+      "phishing": 14
+    },
+    "notions": [
+      "pj"
+    ],
+    "lastSeenDaysAgo": 7
+  },
+  {
+    "id": "np",
+    "name": "Nicolas Petit",
+    "email": "nicolas.petit@entreprise.fr",
+    "job": "Commercial sédentaire",
+    "role": "joueur",
+    "service": "Service commercial",
+    "managerId": "md",
+    "completedDaysAgo": {
+      "phishing": 14,
+      "mdp": 10,
+      "pj": 7
+    },
+    "notions": [
+      "pj"
+    ],
+    "lastSeenDaysAgo": 1
+  },
+  {
+    "id": "sr",
+    "name": "Sarah Roux",
+    "email": "sarah.roux@entreprise.fr",
+    "job": "Chargée de clientèle",
+    "role": "joueur",
+    "service": "Service commercial",
+    "managerId": "md",
+    "completedDaysAgo": {},
+    "notions": [],
+    "lastSeenDaysAgo": null
+  },
+  {
+    "id": "tv",
+    "name": "Thomas Vincent",
+    "email": "thomas.vincent@entreprise.fr",
+    "job": "Commercial terrain",
+    "role": "joueur",
+    "service": "Service commercial",
+    "managerId": "md",
+    "completedDaysAgo": {
+      "phishing": 14,
+      "mdp": 10,
+      "pj": 7,
+      "qr": 4
+    },
+    "notions": [
+      "qr"
+    ],
+    "lastSeenDaysAgo": 3
+  }
+]

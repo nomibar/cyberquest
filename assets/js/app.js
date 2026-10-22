@@ -107,56 +107,49 @@ function icon(name, size = 20, extra = "") {
 
 const FORMAT_ICONS = { "Mail": "mail", "Message vocal": "mic", "QR code": "qr", "Conversation": "message", "Image": "image", "Vidéo": "video" };
 
-/* ---------- Session (compte Supabase connecté, rempli par boot() dans db.js) ---------- */
+/* ---------- Session (compte de démo connecté, rempli par boot() dans db.js) ---------- */
 const Session = {
   current: null,
   user() { return this.current; },
   role() { return this.current ? this.current.role : null; },
-  async logout() { await sb.auth.signOut(); }
+  async logout() { Auth.logout(); }
 };
 
 function homeFor(role) {
   return { joueur: "accueil.html", manager: "equipe.html", admin: "admin.html" }[role] || "accueil.html";
 }
 
-/* ---------- Données modifiables (enregistrées dans la base) ---------- */
+/* ---------- Données modifiables (stockées dans le navigateur, chargées par db.js) ---------- */
 const Assignments = {
   list: [],
   all() { return this.list; },
+  save() { Store.set("cq_assignments", this.list); },
   forPerson(id) { return this.list.filter(a => a.personId === id); },
   async addMany(items) {
-    const created = await rows(sb.from("assignments").insert(items.map(a => ({
-      user_id: a.personId, quiz_id: a.quizId, due: a.due || null, notify: a.notify, group_id: a.group || null
-    }))).select());
-    const mapped = created.map(toAssignment);
-    this.list.push(...mapped);
-    return mapped;
+    const created = items.map(a => ({
+      id: uid("a"), group: a.group || null, personId: a.personId, quizId: a.quizId, due: a.due || "", notify: a.notify, date: todayLabel()
+    }));
+    this.list.push(...created);
+    this.save();
+    return created;
   },
   async add(a) { return (await this.addMany([a]))[0]; },
-  async remove(id) {
-    await rows(sb.from("assignments").delete().eq("id", id));
-    this.list = this.list.filter(a => a.id !== id);
-  },
-  async removeGroup(group) {
-    await rows(sb.from("assignments").delete().eq("group_id", group));
-    this.list = this.list.filter(a => a.group !== group);
-  }
+  async remove(id) { this.list = this.list.filter(a => a.id !== id); this.save(); },
+  async removeGroup(group) { this.list = this.list.filter(a => a.group !== group); this.save(); }
 };
 
 const Questions = {
   list: [],
   all() { return this.list; },
+  save() { Store.set("cq_questions", this.list); },
   get(id) { return this.list.find(q => q.id === id); },
   async upsert(q) {
-    const saved = toQuestion(await rows(sb.from("questions").upsert(fromQuestion(q)).select().single()));
     const i = this.list.findIndex(x => x.id === q.id);
-    if (i >= 0) this.list[i] = saved; else this.list.push(saved);
-    return saved;
+    if (i >= 0) this.list[i] = q; else this.list.push(q);
+    this.save();
+    return q;
   },
-  async remove(id) {
-    await rows(sb.from("questions").delete().eq("id", id));
-    this.list = this.list.filter(q => q.id !== id);
-  }
+  async remove(id) { this.list = this.list.filter(q => q.id !== id); this.save(); }
 };
 
 function quizById(id) { return DATA.quizLibrary.find(q => q.id === id); }

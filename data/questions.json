@@ -1,0 +1,192 @@
+[
+  {
+    "id": "q1",
+    "parcours": "phishing",
+    "titre": "Faux mail de la direction (prime)",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q2",
+    "parcours": "phishing",
+    "titre": "Colis non livré avec pièce jointe",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q3",
+    "parcours": "phishing",
+    "titre": "Mot de passe qui expire",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q4",
+    "parcours": "phishing",
+    "titre": "Facture d'un fournisseur inconnu",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q5",
+    "parcours": "phishing",
+    "titre": "SMS de la banque",
+    "format": "Conversation",
+    "statut": "brouillon"
+  },
+  {
+    "id": "q6",
+    "parcours": "mdp",
+    "titre": "Choisir une phrase de passe",
+    "format": "Conversation",
+    "statut": "publie"
+  },
+  {
+    "id": "q7",
+    "parcours": "mdp",
+    "titre": "Mot de passe noté sur un post-it",
+    "format": "Image",
+    "statut": "publie"
+  },
+  {
+    "id": "q8",
+    "parcours": "mdp",
+    "titre": "Même mot de passe partout",
+    "format": "Conversation",
+    "statut": "publie"
+  },
+  {
+    "id": "q9",
+    "parcours": "mdp",
+    "titre": "Activer la double authentification",
+    "format": "Conversation",
+    "statut": "publie"
+  },
+  {
+    "id": "q10",
+    "parcours": "pj",
+    "titre": "Fichier .zip inattendu",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q11",
+    "parcours": "pj",
+    "titre": "Document Word avec macros",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q12",
+    "parcours": "pj",
+    "titre": "Facture en .exe",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q13",
+    "parcours": "pj",
+    "titre": "Lien de partage de fichiers",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q14",
+    "parcours": "pj",
+    "titre": "Clé USB trouvée sur le parking",
+    "format": "Image",
+    "statut": "publie"
+  },
+  {
+    "id": "q15",
+    "parcours": "qr",
+    "titre": "QR code collé sur un parcmètre",
+    "format": "QR code",
+    "statut": "publie"
+  },
+  {
+    "id": "q16",
+    "parcours": "qr",
+    "titre": "QR code reçu par courrier",
+    "format": "QR code",
+    "statut": "publie"
+  },
+  {
+    "id": "q17",
+    "parcours": "qr",
+    "titre": "QR code dans un mail",
+    "format": "Mail",
+    "statut": "publie"
+  },
+  {
+    "id": "q18",
+    "parcours": "qr",
+    "titre": "Menu de restaurant modifié",
+    "format": "QR code",
+    "statut": "brouillon"
+  },
+  {
+    "id": "q19",
+    "parcours": "ia",
+    "titre": "Reconnaître un faux QR code sur une affiche",
+    "format": "QR code",
+    "statut": "publie",
+    "notion": "Faux QR codes",
+    "situation": "Une affiche dans le hall propose de scanner un QR code pour « gagner une carte cadeau ».",
+    "reponses": [
+      "Scanner le QR code",
+      "Prévenir l'accueil ou le service informatique",
+      "Prendre une photo pour plus tard"
+    ],
+    "correct": 1,
+    "explication": "Un QR code peut mener vers un faux site. Avant de scanner, vérifiez qui a posé l'affiche."
+  },
+  {
+    "id": "q20",
+    "parcours": "ia",
+    "titre": "Un chatbot vous demande vos identifiants",
+    "format": "Conversation",
+    "statut": "publie",
+    "notion": "IA générative",
+    "situation": "Un assistant en ligne vous demande votre identifiant et votre mot de passe pour « finaliser votre demande ».",
+    "reponses": [
+      "Donner mes identifiants",
+      "Fermer la conversation et prévenir le support",
+      "Donner seulement mon identifiant"
+    ],
+    "correct": 1,
+    "explication": "Aucun assistant légitime ne demande votre mot de passe."
+  },
+  {
+    "id": "q21",
+    "parcours": "ia",
+    "titre": "Photo truquée d'un dirigeant sur LinkedIn",
+    "format": "Image",
+    "statut": "publie",
+    "notion": "IA générative",
+    "situation": "Une photo de votre PDG annonçant un jeu concours circule sur LinkedIn.",
+    "reponses": [
+      "Partager la publication",
+      "Vérifier sur le compte officiel de l'entreprise",
+      "Participer au concours"
+    ],
+    "correct": 1,
+    "explication": "L'IA permet de créer de fausses images très réalistes : vérifiez toujours la source officielle."
+  },
+  {
+    "id": "q22",
+    "parcours": "ia",
+    "titre": "Vidéo deepfake en visioconférence",
+    "format": "Vidéo",
+    "statut": "brouillon",
+    "notion": "Deepfakes vocaux",
+    "situation": "En visio, un « directeur » à l'image un peu floue vous demande un virement urgent.",
+    "reponses": [
+      "Faire le virement",
+      "Raccrocher et rappeler le directeur sur son numéro habituel",
+      "Demander un mail de confirmation"
+    ],
+    "correct": 1,
+    "explication": "Une vidéo peut être truquée en direct. Confirmez toujours par un autre canal."
+  }
+]

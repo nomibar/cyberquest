@@ -1,0 +1,83 @@
+[
+  {
+    "id": "cyber",
+    "name": "Cybersécurité",
+    "icon": "cpu",
+    "quizzes": [
+      {
+        "title": "Menaces & vulnérabilités",
+        "questions": 10,
+        "level": "Intermédiaire"
+      },
+      {
+        "title": "Cryptographie & authentification",
+        "questions": 15,
+        "level": "Avancé"
+      },
+      {
+        "title": "Sécurité des données",
+        "questions": 12,
+        "level": "Débutant"
+      },
+      {
+        "title": "Phishing : repérer les faux mails",
+        "questions": 5,
+        "level": "Débutant"
+      }
+    ]
+  },
+  {
+    "id": "info",
+    "name": "Informatique",
+    "icon": "book",
+    "quizzes": [
+      {
+        "title": "Algorithmes & complexité",
+        "questions": 8,
+        "level": "Débutant"
+      },
+      {
+        "title": "Réseaux & protocoles",
+        "questions": 10,
+        "level": "Intermédiaire"
+      },
+      {
+        "title": "Bases de données",
+        "questions": 9,
+        "level": "Intermédiaire"
+      }
+    ]
+  },
+  {
+    "id": "ia",
+    "name": "Intelligence artificielle",
+    "icon": "flask",
+    "quizzes": [
+      {
+        "title": "Apprentissage automatique",
+        "questions": 12,
+        "level": "Intermédiaire"
+      },
+      {
+        "title": "Vision par ordinateur",
+        "questions": 15,
+        "level": "Avancé"
+      },
+      {
+        "title": "IA générative & chatbots",
+        "questions": 8,
+        "level": "Débutant"
+      },
+      {
+        "title": "Deepfakes vocaux",
+        "questions": 6,
+        "level": "Débutant"
+      },
+      {
+        "title": "Éthique de l'IA",
+        "questions": 10,
+        "level": "Intermédiaire"
+      }
+    ]
+  }
+]

@@ -1,13 +1,12 @@
 /* =========================================================
    CyberQuest – constantes d'affichage
-   Le contenu (parcours, questions, équipe, progression…) est
-   dans la base Supabase : voir assets/js/db.js et supabase/.
+   Le contenu (parcours, questions, équipe…) est dans data/*.json.
    Les champs ci-dessous marqués « chargé » sont remplis par db.js.
    ========================================================= */
 
 const DATA = {};
 
-/* ---------- Comptes de démonstration (créés par supabase/seed.sql) ---------- */
+/* ---------- Comptes de démonstration (présents dans data/people.json) ---------- */
 DATA.demoAccounts = [
   { role: "joueur", name: "Camille Bernard", initials: "CB", email: "camille.bernard@entreprise.fr" },
   { role: "manager", name: "Marc Durand", initials: "MD", email: "marc.durand@entreprise.fr" },
@@ -15,9 +14,6 @@ DATA.demoAccounts = [
 ];
 DATA.demoPassword = "demo";
 DATA.roleLabels = { joueur: "Employé", manager: "Manager", admin: "Administratrice RH" };
-
-/* ---------- Mini-jeu ---------- */
-DATA.gameInfo = { parcoursId: "phishing", title: "Mini-jeu · Phishing", minutesPerSituation: 3 };
 
 /* ---------- Administration : listes des formulaires ---------- */
 DATA.formats = ["Mail", "Message vocal", "QR code", "Conversation", "Image", "Vidéo"];

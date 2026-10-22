@@ -1,0 +1,27 @@
+[
+  {
+    "id": "phishing",
+    "name": "Phishing",
+    "games": 5
+  },
+  {
+    "id": "mdp",
+    "name": "Mots de passe",
+    "games": 4
+  },
+  {
+    "id": "pj",
+    "name": "Pièces jointes suspectes",
+    "games": 5
+  },
+  {
+    "id": "qr",
+    "name": "Faux QR codes",
+    "games": 4
+  },
+  {
+    "id": "ia",
+    "name": "IA & deepfakes",
+    "games": 4
+  }
+]

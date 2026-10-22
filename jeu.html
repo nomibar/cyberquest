@@ -85,8 +85,6 @@
 
   <main id="stage" class="stage" aria-live="polite"></main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-  <script src="assets/js/config.js"></script>
   <script src="assets/js/data.js"></script>
   <script src="assets/js/app.js"></script>
   <script src="assets/js/db.js"></script>
@@ -96,7 +94,7 @@
 
       const G = DATA.game;
       const N = G.situations.length;
-      /* La partie en cours reste dans le navigateur ; le résultat final va dans la base */
+      /* La partie en cours et les résultats sont enregistrés dans le navigateur */
       const gameKey = "cq_game_" + user.id;
       const saved = Store.get(gameKey, null);
       const state = saved && saved.index < N ? saved : { index: 0, step: "mail", results: [] };
@@ -294,11 +292,8 @@
       function finish() {
         state.step = "resultat";
         Store.remove(gameKey);
-        const firstTry = state.results.filter(r => r && r.firstTry).length;
-        Promise.all([
-          rows(sb.from("game_results").insert({ user_id: user.id, parcours_id: G.parcoursId, first_try: firstTry, total: N })),
-          rows(sb.from("parcours_completions").upsert({ user_id: user.id, parcours_id: G.parcoursId }, { ignoreDuplicates: true }))
-        ]).catch(saveError);
+        Progress.addResult(user.id, { firstTry: state.results.filter(r => r && r.firstTry).length, total: N });
+        Progress.complete(user.id, G.parcoursId);
       }
 
       if (saved && saved.index > 0 && saved.index < N) toast("Reprise là où vous vous étiez arrêté.");
