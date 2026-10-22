@@ -54,7 +54,7 @@ svg { flex-shrink: 0; }
 
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
+  overflow: hidden; clip-path: inset(50%); border: 0;
 }
 
 :focus-visible { outline: 3px solid var(--indigo); outline-offset: 2px; border-radius: 6px; }
@@ -457,7 +457,7 @@ main { flex: 1; }
   .toast { right: 16px; bottom: 16px; }
 
   /* Tableaux en cartes empilées : chaque ligne devient un bloc lisible sans défilement horizontal */
-  .table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+  .table--stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .table--stack tr { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 16px; border-bottom: 1px solid var(--border); }
   .table--stack tr:last-child { border-bottom: 0; }
   .table--stack td { display: block; flex: 1 1 100%; padding: 0; border: 0; width: auto; }
